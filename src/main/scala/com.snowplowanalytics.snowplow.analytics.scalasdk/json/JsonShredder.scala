@@ -39,7 +39,7 @@ import scala.annotation.tailrec
  */
 object JsonShredder {
 
-  private val schemaPattern = """.+:([a-zA-Z0-9_\.]+)/([a-zA-Z0-9_]+)/[^/]+/(.*)""".r
+  private val schemaPattern = """.+:([a-zA-Z0-9_\.\-]+)/([a-zA-Z0-9_]+)/[^/]+/(.*)""".r
 
   /**
    * Create an Elasticsearch field name from a schema
@@ -57,7 +57,7 @@ object JsonShredder {
       case schemaPattern(organization, name, schemaVer) => {
 
         // Split the vendor's reversed domain name using underscores rather than dots
-        val snakeCaseOrganization = organization.replaceAll("""\.""", "_").toLowerCase
+        val snakeCaseOrganization = organization.replaceAll("""[\.\-]""", "_").toLowerCase
 
         // Change the name from PascalCase to snake_case if necessary
         val snakeCaseName = name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase
