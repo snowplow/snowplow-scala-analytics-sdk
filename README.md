@@ -132,7 +132,7 @@ limitations under the License.
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
-[release-image]: http://img.shields.io/badge/release-0.1.0-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-0.1.1-blue.svg?style=flat
 [releases]: https://github.com/snowplow/snowplow-scala-analytics-sdk/releases
 
 [sdk-usage-img]: https://raw.githubusercontent.com/snowplow/snowplow-scala-analytics-sdk/master/sdk-usage.png
