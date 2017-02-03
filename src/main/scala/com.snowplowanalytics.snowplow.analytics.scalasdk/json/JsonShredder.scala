@@ -34,7 +34,25 @@ import scala.annotation.tailrec
  */
 object JsonShredder {
 
-  private val schemaPattern = """.+:([a-zA-Z0-9_\.\-]+)/([a-zA-Z0-9_]+)/[^/]+/(.*)""".r
+  /**
+    * ADT representing field types that can be shredded (self-describing JSONs)
+    */
+  sealed trait ShredPrefix { def asString: String }
+  case object Contexts extends ShredPrefix { def asString = "contexts" }
+  case object UnstructEvent extends ShredPrefix { def asString = "unstruct_event" }
+
+  /**
+    * Canonical Iglu Schema URI regiex
+    * TODO: replace with Iglu core
+    */
+  val schemaPattern = (
+    "^iglu:" +                            // Protocol
+      "([a-zA-Z0-9-_.]+)/" +              // Vendor
+      "([a-zA-Z0-9-_]+)/" +               // Name
+      "([a-zA-Z0-9-_]+)/" +               // Format
+      "([1-9][0-9]*" +                    // MODEL (cannot start with 0)
+      "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
+                                          // Extract whole SchemaVer within single group
 
   /**
    * Create an Elasticsearch field name from a schema
@@ -47,20 +65,20 @@ object JsonShredder {
    */
    // TODO: move this to shared storage/shredding utils
    // See https://github.com/snowplow/snowplow/issues/1189
-  def fixSchema(prefix: String, schema: String): Either[String, String] = {
+  def fixSchema(prefix: ShredPrefix, schema: String): Either[String, String] = {
     schema match {
-      case schemaPattern(organization, name, schemaVer) =>
+      case schemaPattern(organization, name, _, schemaVer) =>
         // Split the vendor's reversed domain name using underscores rather than dots
         val snakeCaseOrganization = organization.replaceAll("""[\.\-]""", "_").toLowerCase
 
-        // Change the name from PascalCase to snake_case if necessary
-        val snakeCaseName = name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase
+        // Change the name from PascalCase or lisp-case to snake_case if necessary
+        val snakeCaseName = name.replaceAll("""[\.\-]""", "_").replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase
 
         // Extract the schemaver version's model
         val model = schemaVer.split("-")(0)
 
-        Right(s"${prefix}_${snakeCaseOrganization}_${snakeCaseName}_$model")
-      case _ => Left("Schema %s does not conform to regular expression %s".format(schema, schemaPattern.toString))
+        Right(s"${prefix.asString}_${snakeCaseOrganization}_${snakeCaseName}_$model")
+      case _ => Left(s"Schema [$schema] does not conform to Iglu Schema URI regular expression")
     }
   }
 
@@ -143,14 +161,13 @@ object JsonShredder {
 
       contextJsons match {
         case Nil => accumulator
-        case head :: tail =>
-          val context = head
+        case context :: tail =>
           val innerData = context \ "data" match {
-            case JNothing => Left("Could not extract inner data field from custom context") // TODO: decide whether to enforce object type of data
+            case JNothing => Left("Could not extract inner data field from custom context")
             case d => Right(d)
           }
           val fixedSchema: Either[String, String] = context \ "schema" match {
-            case JString(schema) => fixSchema("contexts", schema)
+            case JString(schema) => fixSchema(Contexts, schema)
             case _ => Left("Context JSON did not contain a stringly typed schema field")
           }
 
@@ -204,7 +221,7 @@ object JsonShredder {
       case d => Right(d)
     }
     val fixedSchema = schema match {
-      case JString(s) => fixSchema("unstruct_event", s)
+      case JString(s) => fixSchema(UnstructEvent, s)
       case _ => Left("Unstructured event JSON did not contain a stringly typed schema field")
     }
 
