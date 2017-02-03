@@ -16,7 +16,6 @@ package json
 
 // json4s
 import org.json4s._
-import org.json4s.jackson.JsonMethods._
 import org.json4s.JsonDSL._
 
 // Specs2
@@ -29,18 +28,23 @@ class JsonShredderSpec extends Specification {
 
   "The fixSchema method" should {
     "convert a snake_case schema to an Elasticsearch field name" in {
-      val actual = JsonShredder.fixSchema("unstruct_event", "iglu:com.snowplowanalytics.snowplow/change_form/jsonschema/1-0-0")
+      val actual = JsonShredder.fixSchema(JsonShredder.UnstructEvent, "iglu:com.snowplowanalytics.snowplow/change_form/jsonschema/1-0-0")
       actual must beRight("unstruct_event_com_snowplowanalytics_snowplow_change_form_1")
     }
 
     "convert a PascalCase schema to an Elasticsearch field name" in {
-      val actual = JsonShredder.fixSchema("contexts", "iglu:com.acme/PascalCaseContext/jsonschema/1-0-0")
+      val actual = JsonShredder.fixSchema(JsonShredder.Contexts, "iglu:com.acme/PascalCaseContext/jsonschema/1-0-0")
       actual must beRight("contexts_com_acme_pascal_case_context_1")
     }
 
     "convert a schema with consecutive capital letters to an Elasticsearch field name" in {
-      val actual = JsonShredder.fixSchema("contexts", "iglu:com.acme/ContextUK/jsonschema/1-0-0")
+      val actual = JsonShredder.fixSchema(JsonShredder.Contexts, "iglu:com.acme/ContextUK/jsonschema/1-0-0")
       actual must beRight("contexts_com_acme_context_uk_1")
+    }
+
+    "convert a schema with hyphens Elasticsearch field name" in {
+      val actual = JsonShredder.fixSchema(JsonShredder.Contexts, "iglu:com.acme/lisp-case/jsonschema/1-0-0")
+      actual must beRight("contexts_com_acme_lisp_case_1")
     }
   }
 
@@ -133,7 +137,7 @@ class JsonShredderSpec extends Specification {
       val expected = List(
         "Could not extract inner data field from custom context",
         "Context JSON did not contain a stringly typed schema field",
-        """Schema failing does not conform to regular expression .+:([a-zA-Z0-9_\.\-]+)/([a-zA-Z0-9_]+)/[^/]+/(.*)""")
+        "Schema [failing] does not conform to Iglu Schema URI regular expression")
 
       actual must beLeft.like {
         case errors => errors must beEqualTo(expected)
@@ -147,8 +151,6 @@ class JsonShredderSpec extends Specification {
       }""")
 
       actual must beRight
-
     }
   }
-
 }
