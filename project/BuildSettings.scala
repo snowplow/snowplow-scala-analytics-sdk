@@ -20,7 +20,7 @@ object BuildSettings {
     organization          :=  "com.snowplowanalytics",
     version               :=  "0.1.1",
     description           :=  "Scala analytics SDK for Snowplow",
-    scalaVersion          :=  "2.10.6",
+    scalaVersion          :=  "2.11.5",
     crossScalaVersions    :=  Seq("2.10.6", "2.11.5"),
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8"),
     resolvers             ++= Dependencies.resolutionRepos
