@@ -172,7 +172,10 @@ object JsonShredder {
     val data = json \ "data"
 
     data match {
-      case JArray(Nil) => "Custom contexts data array is empty".failNel
+      case JArray(Nil) => {
+        val innerContexts: ValidationNel[String, List[(String, JValue)]] = innerParseContexts(List(), Nil).sequenceU
+        innerContexts.map(_.groupBy(_._1).map(pair => (pair._1, pair._2.map(_._2))))
+      }
       case JArray(ls) => {
         val innerContexts: ValidationNel[String, List[(String, JValue)]] = innerParseContexts(ls, Nil).sequenceU
 
