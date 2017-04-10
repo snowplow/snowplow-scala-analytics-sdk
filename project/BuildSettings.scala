@@ -10,8 +10,14 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
+
+// SBT
 import sbt._
 import Keys._
+
+// Bintray plugin
+import bintray.BintrayPlugin._
+import bintray.BintrayKeys._
 
 object BuildSettings {
 
@@ -31,17 +37,25 @@ object BuildSettings {
     )
   )
 
-  // Publish settings
-  // TODO: update with ivy credentials etc when we start using Nexus
-  lazy val publishSettings = Seq[Setting[_]](
-    // Enables publishing to maven repo
+  lazy val publishSettings = bintraySettings ++ Seq(
     publishMavenStyle := true,
-
-    publishTo := {
-      val basePath = "target/repo/%s".format {
-        if (version.value.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
-      }
-      Some(Resolver.file("Local Maven repository", file(basePath)) transactional())
-    }
+    publishArtifact := true,
+    publishArtifact in Test := false,
+    licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintrayOrganization := Some("snowplow"),
+    bintrayRepository := "snowplow-maven",
+    pomIncludeRepository := { _ => false },
+    homepage := Some(url("http://snowplowanalytics.com")),
+    scmInfo := Some(ScmInfo(url("https://github.com/snowplow/scala-scala-analytics-sdk"),
+      "scm:git@github.com:snowplow/snowplow-scala-analytics-sdk.git")),
+    pomExtra := (
+      <developers>
+        <developer>
+          <name>Snowplow Analytics Ltd</name>
+          <email>support@snowplowanalytics.com</email>
+          <organization>Snowplow Analytics Ltd</organization>
+          <organizationUrl>http://snowplowanalytics.com</organizationUrl>
+        </developer>
+      </developers>)
   )
 }
