@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -16,14 +16,19 @@ import Keys._
 object BuildSettings {
 
   // Basic settings for our app
-  lazy val basicSettings = Seq[Setting[_]](
-    organization          :=  "com.snowplowanalytics",
-    version               :=  "0.1.1",
-    description           :=  "Scala analytics SDK for Snowplow",
-    scalaVersion          :=  "2.10.6",
-    crossScalaVersions    :=  Seq("2.10.6", "2.11.5"),
-    scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8"),
-    resolvers             ++= Dependencies.resolutionRepos
+  lazy val buildSettings = Seq(
+    scalacOptions      := Seq(
+      "-deprecation",
+      "-encoding", "UTF-8",
+      "-feature",
+      "-unchecked",
+      "-Ywarn-dead-code",
+      "-Ywarn-inaccessible",
+      "-Ywarn-nullary-override",
+      "-Ywarn-nullary-unit",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-value-discard"
+    )
   )
 
   // Publish settings
@@ -32,13 +37,11 @@ object BuildSettings {
     // Enables publishing to maven repo
     publishMavenStyle := true,
 
-    publishTo <<= version { version =>
+    publishTo := {
       val basePath = "target/repo/%s".format {
-        if (version.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
+        if (version.value.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
       }
       Some(Resolver.file("Local Maven repository", file(basePath)) transactional())
     }
   )
-
-  lazy val buildSettings = basicSettings ++ publishSettings
 }
