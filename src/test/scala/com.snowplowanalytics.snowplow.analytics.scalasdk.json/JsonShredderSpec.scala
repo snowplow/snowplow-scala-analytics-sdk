@@ -139,6 +139,16 @@ class JsonShredderSpec extends Specification {
         case errors => errors must beEqualTo(expected)
       }
     }
+
+    "allow empty custom context" in {
+      val actual = JsonShredder.parseContexts("""{
+        "schema": "any",
+        "data": []
+      }""")
+
+      actual must beRight
+
+    }
   }
 
 }
