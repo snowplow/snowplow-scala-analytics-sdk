@@ -1,5 +1,5 @@
  /*
- * Copyright (c) 2016 Snowplow Analytics Ltd.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd.
  * All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
@@ -20,17 +20,12 @@ package com.snowplowanalytics.snowplow
 package analytics.scalasdk
 package json
 
-// Scalaz
-import scalaz._
-import Scalaz._
-
 // json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.JsonDSL._
 
 // Scala
-import scala.util.matching.Regex
 import scala.annotation.tailrec
 
 /**
@@ -52,10 +47,9 @@ object JsonShredder {
    */
    // TODO: move this to shared storage/shredding utils
    // See https://github.com/snowplow/snowplow/issues/1189
-  def fixSchema(prefix: String, schema: String): ValidationNel[String, String] = {
+  def fixSchema(prefix: String, schema: String): Either[String, String] = {
     schema match {
-      case schemaPattern(organization, name, schemaVer) => {
-
+      case schemaPattern(organization, name, schemaVer) =>
         // Split the vendor's reversed domain name using underscores rather than dots
         val snakeCaseOrganization = organization.replaceAll("""[\.\-]""", "_").toLowerCase
 
@@ -65,9 +59,8 @@ object JsonShredder {
         // Extract the schemaver version's model
         val model = schemaVer.split("-")(0)
 
-        s"${prefix}_${snakeCaseOrganization}_${snakeCaseName}_${model}".successNel
-      }
-      case _ => "Schema %s does not conform to regular expression %s".format(schema, schemaPattern.toString).failNel
+        Right(s"${prefix}_${snakeCaseOrganization}_${snakeCaseName}_$model")
+      case _ => Left("Schema %s does not conform to regular expression %s".format(schema, schemaPattern.toString))
     }
   }
 
@@ -109,7 +102,7 @@ object JsonShredder {
    * @param contexts Contexts JSON
    * @return Contexts JSON in an Elasticsearch-compatible format
    */
-  def parseContexts(contexts: String): ValidationNel[String, JObject] = {
+  def parseContexts(contexts: String): Either[List[String], JObject] = {
 
     /**
      * Validates and pairs up the schema and data fields without grouping the same schemas together
@@ -145,26 +138,25 @@ object JsonShredder {
      * @param accumulator Custom contexts which have already been parsed
      * @return List of validated tuples containing a fixed schema string and the original data JObject
      */
-    @tailrec def innerParseContexts(contextJsons: List[JValue], accumulator: List[ValidationNel[String, (String, JValue)]]):
-      List[ValidationNel[String, (String, JValue)]] = {
+    @tailrec def innerParseContexts(contextJsons: List[JValue], accumulator: List[Either[List[String], (String, JValue)]]):
+    List[Either[List[String], (String, JValue)]] = {
 
       contextJsons match {
         case Nil => accumulator
-        case head :: tail => {
+        case head :: tail =>
           val context = head
           val innerData = context \ "data" match {
-            case JNothing => "Could not extract inner data field from custom context".failNel // TODO: decide whether to enforce object type of data
-            case d => d.successNel
+            case JNothing => Left("Could not extract inner data field from custom context") // TODO: decide whether to enforce object type of data
+            case d => Right(d)
           }
-          val fixedSchema: ValidationNel[String, String] = context \ "schema" match {
+          val fixedSchema: Either[String, String] = context \ "schema" match {
             case JString(schema) => fixSchema("contexts", schema)
-            case _ => "Context JSON did not contain a stringly typed schema field".failNel
+            case _ => Left("Context JSON did not contain a stringly typed schema field")
           }
 
-          val schemaDataPair = (fixedSchema |@| innerData) {_ -> _}
+          val schemaDataPair = fixedSchema.map2(innerData) {_ -> _}
 
           innerParseContexts(tail, schemaDataPair :: accumulator)
-        }
       }
     }
 
@@ -172,16 +164,13 @@ object JsonShredder {
     val data = json \ "data"
 
     data match {
-      case JArray(Nil) => "Custom contexts data array is empty".failNel
-      case JArray(ls) => {
-        val innerContexts: ValidationNel[String, List[(String, JValue)]] = innerParseContexts(ls, Nil).sequenceU
-
+      case JArray(Nil) => Left(List("Custom contexts data array is empty"))
+      case JArray(ls) =>
+        val innerContexts: Either[List[String], List[(String, JValue)]] = innerParseContexts(ls, Nil).traverseEitherL
         // Group contexts with the same schema together
         innerContexts.map(_.groupBy(_._1).map(pair => (pair._1, pair._2.map(_._2))))
-      }
-      case _ => "Could not extract contexts data field as an array".failNel
+      case _ => Left(List("Could not extract contexts data field as an array"))
     }
-
   }
 
   /**
@@ -207,19 +196,19 @@ object JsonShredder {
    * @param unstruct Unstructured event JSON
    * @return Unstructured event JSON in an Elasticsearch-compatible format
    */
-  def parseUnstruct(unstruct: String): ValidationNel[String, JObject] = {
+  def parseUnstruct(unstruct: String): Either[List[String], JObject] = {
     val json = parse(unstruct)
     val data = json \ "data"
     val schema = data \ "schema"
-    val innerData = data \ "data" match {
-      case JNothing => "Could not extract inner data field from unstructured event".failNel // TODO: decide whether to enforce object type of data
-      case d => d.successNel
+    val innerData: Either[String, JValue] = data \ "data" match {
+      case JNothing => Left("Could not extract inner data field from unstructured event") // TODO: decide whether to enforce object type of data
+      case d => Right(d)
     }
     val fixedSchema = schema match {
       case JString(s) => fixSchema("unstruct_event", s)
-      case _ => "Unstructured event JSON did not contain a stringly typed schema field".failNel
+      case _ => Left("Unstructured event JSON did not contain a stringly typed schema field")
     }
 
-    (fixedSchema |@| innerData) {_ -> _}
+    fixedSchema.map2(innerData) {_ -> _}
   }
 }

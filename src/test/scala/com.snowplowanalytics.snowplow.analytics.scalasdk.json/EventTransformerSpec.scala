@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -14,22 +14,17 @@ package com.snowplowanalytics.snowplow
 package analytics.scalasdk
 package json
 
-// Scalaz
-import scalaz._
-import Scalaz._
-
 // json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 // Specs2
 import org.specs2.mutable.Specification
-import org.specs2.scalaz.ValidationMatchers
 
 /**
  * Tests SnowplowElasticsearchTransformer
  */
-class EventTransformerSpec extends Specification with ValidationMatchers {
+class EventTransformerSpec extends Specification {
 
   val unstructJson = """{
     "schema": "iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0",
@@ -256,6 +251,8 @@ class EventTransformerSpec extends Specification with ValidationMatchers {
 
       val jsonStr = EventTransformer
         .transform(eventValues)
+        .right
+        .toOption
         .getOrElse(throw new RuntimeException("Event failed transformation"))
 
       val result = parse(jsonStr)
