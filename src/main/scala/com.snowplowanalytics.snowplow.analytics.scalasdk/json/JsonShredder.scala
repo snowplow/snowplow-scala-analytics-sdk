@@ -138,8 +138,8 @@ object JsonShredder {
      * @param accumulator Custom contexts which have already been parsed
      * @return List of validated tuples containing a fixed schema string and the original data JObject
      */
-    @tailrec def innerParseContexts(contextJsons: List[JValue], accumulator: List[Either[List[String], (String, JValue)]]):
-    List[Either[List[String], (String, JValue)]] = {
+    @tailrec def innerParseContexts(contextJsons: List[JValue], accumulator: List[Either[List[String], JField]]):
+    List[Either[List[String], JField]] = {
 
       contextJsons match {
         case Nil => accumulator
@@ -164,9 +164,8 @@ object JsonShredder {
     val data = json \ "data"
 
     data match {
-      case JArray(Nil) => Left(List("Custom contexts data array is empty"))
-      case JArray(ls) =>
-        val innerContexts: Either[List[String], List[(String, JValue)]] = innerParseContexts(ls, Nil).traverseEitherL
+      case JArray(jsons) =>
+        val innerContexts = innerParseContexts(jsons, Nil).traverseEitherL
         // Group contexts with the same schema together
         innerContexts.map(_.groupBy(_._1).map(pair => (pair._1, pair._2.map(_._2))))
       case _ => Left(List("Could not extract contexts data field as an array"))
