@@ -29,11 +29,9 @@ lazy val root = project.in(file("."))
     libraryDependencies ++= Seq(
       // Scala
       Dependencies.json4sJackson,
-      Dependencies.scalaz7,
       // Scala (test only)
       Dependencies.scalaCheck,
       Dependencies.specs2,
-      Dependencies.specs2Scalacheck,
-      Dependencies.scalazSpecs2
+      Dependencies.specs2Scalacheck
     )
   )

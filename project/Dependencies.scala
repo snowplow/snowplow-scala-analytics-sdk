@@ -15,19 +15,15 @@ import sbt._
 object Dependencies {
 
   object V {
-    val json4s       = "3.2.10" // See https://github.com/json4s/json4s/issues/212
-    val scalaz7      = "7.0.6"
+    val json4s         = "3.2.10" // See https://github.com/json4s/json4s/issues/212
     // Scala (test only)
-    val specs2       = "3.8.9"
-    val scalazSpecs2 = "0.2"
-    val scalaCheck   = "1.13.4"
+    val specs2         = "3.8.9"
+    val scalaCheck     = "1.13.4"
   }
 
-  val json4sJackson        = "org.json4s"                 %% "json4s-jackson"    % V.json4s
-  val scalaz7              = "org.scalaz"                 %% "scalaz-core"       % V.scalaz7
+  val json4sJackson    = "org.json4s"                 %% "json4s-jackson"     % V.json4s
   // Scala (test only)
-  val specs2               = "org.specs2"                 %% "specs2-core"       % V.specs2       % "test"
-  val specs2Scalacheck     = "org.specs2"                 %% "specs2-scalacheck" % V.specs2       % "test"
-  val scalaCheck           = "org.scalacheck"             %% "scalacheck"        % V.scalaCheck   % "test"
-  val scalazSpecs2         = "org.typelevel"              %% "scalaz-specs2"     % V.scalazSpecs2 % "test"
+  val specs2           = "org.specs2"                 %% "specs2-core"        % V.specs2     % "test"
+  val specs2Scalacheck = "org.specs2"                 %% "specs2-scalacheck"  % V.specs2     % "test"
+  val scalaCheck       = "org.scalacheck"             %% "scalacheck"         % V.scalaCheck % "test"
 }
