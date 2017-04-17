@@ -54,6 +54,9 @@ package object json {
       case Left(l) => Left(l)
     }
 
+    /**
+     * Applicative for Either
+     */
     def map2[RO, RR](other: Either[L, RO])(f: (R, RO) => RR): Either[List[L], RR] = either match {
       case Right(r) => other match {
         case Right(ro) => Right(f(r, ro))
@@ -70,7 +73,7 @@ package object json {
    * Replacement for Scalaz Traverse type-class syntax,
    * defined specifically for `List[Either[L, R]]`
    */
-  implicit class ListSyntax[+A](list: List[A]) {
+  private[scalasdk] implicit class ListSyntax[+A](list: List[A]) {
     /**
      * Scalaz .sequence replacement for short-circuiting list of `Either`s
      */
@@ -80,6 +83,8 @@ package object json {
         case Left(l: L @unchecked) => Left(l)
       } }
 
+
+    private type EitherAccum[L, R] = (Either[List[L], List[R]], Either[List[L], List[R]])
 
     /**
      * Scalaz .sequence replacement for error-accumulating list of `Either`s
@@ -99,8 +104,6 @@ package object json {
         
       }
     }
-
-    private type EitherAccum[L, R] = (Either[List[L], List[R]], Either[List[L], List[R]])
 
     private def reverseAccum[L, R](eithers: EitherAccum[L, R]): EitherAccum[L, R] = eithers match {
       case (Left(lefts), Right(rights)) => (Left(lefts.reverse), Right(rights.reverse))
