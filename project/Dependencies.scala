@@ -15,15 +15,18 @@ import sbt._
 object Dependencies {
 
   object V {
+    val aws            = "1.11.118"
     val json4s         = "3.2.10" // See https://github.com/json4s/json4s/issues/212
     // Scala (test only)
     val specs2         = "3.8.9"
     val scalaCheck     = "1.13.4"
   }
 
-  val json4sJackson    = "org.json4s"                 %% "json4s-jackson"     % V.json4s
+  val json4sJackson    = "org.json4s"                 %% "json4s-jackson"       % V.json4s
+  val s3               = "com.amazonaws"              % "aws-java-sdk-s3"       % V.aws
+  val dynamodb         = "com.amazonaws"              % "aws-java-sdk-dynamodb" % V.aws
   // Scala (test only)
-  val specs2           = "org.specs2"                 %% "specs2-core"        % V.specs2     % "test"
-  val specs2Scalacheck = "org.specs2"                 %% "specs2-scalacheck"  % V.specs2     % "test"
-  val scalaCheck       = "org.scalacheck"             %% "scalacheck"         % V.scalaCheck % "test"
+  val specs2           = "org.specs2"                 %% "specs2-core"          % V.specs2     % "test"
+  val specs2Scalacheck = "org.specs2"                 %% "specs2-scalacheck"    % V.specs2     % "test"
+  val scalaCheck       = "org.scalacheck"             %% "scalacheck"           % V.scalaCheck % "test"
 }
