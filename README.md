@@ -50,23 +50,7 @@ For example, if an enriched event contained a `com.snowplowanalytics.snowplow/li
 
 ## 3. Usage
 
-### 3.1 Installation
-
-The latest version of Snowplow Scala Analytics SDK is 0.1.0, which is cross-built against Scala 2.10.x and 2.11.x.
-
-If you're using SBT, add the following lines to your build file:
-
-```scala
-// Resolvers
-val snowplowRepo = "Snowplow Analytics" at "http://maven.snplow.com/releases/"
-
-// Dependency
-val analyticsSdk = "com.snowplowanalytics" %% "snowplow-scala-analytics-sdk" % "0.1.0"
-```
-
-Note the double percent (`%%`) between the group and artifactId. This will ensure that you get the right package for your Scala version.
-
-### 3.2 Using from Apache Spark
+### 3.1 Using from Apache Spark
 
 The Scala Analytics SDK is a great fit for performing Snowplow **[event data modeling] [event-data-modeling]** in Apache Spark and Spark Streaming.
 
@@ -83,7 +67,7 @@ val events = input
 val dataframe = ctx.read.json(events)
 ```
 
-### 3.3 Using from AWS Lambda
+### 3.2 Using from AWS Lambda
 
 The Scala Analytics SDK is a great fit for performing **analytics-on-write** on Snowplow event streams using AWS Lambda.
 
