@@ -15,7 +15,7 @@ lazy val root = project.in(file("."))
   .settings(Seq[Setting[_]](
     name               := "snowplow-scala-analytics-sdk",
     organization       := "com.snowplowanalytics",
-    version            := "0.2.0",
+    version            := "0.2.0-M1",
     description        := "Scala analytics SDK for Snowplow",
     scalaVersion       := "2.10.6",
     crossScalaVersions := Seq("2.10.6", "2.11.5")
