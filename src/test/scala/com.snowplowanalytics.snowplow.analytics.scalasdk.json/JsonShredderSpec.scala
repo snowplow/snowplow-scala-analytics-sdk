@@ -21,6 +21,9 @@ import org.json4s.JsonDSL._
 // Specs2
 import org.specs2.mutable.Specification
 
+// This library
+import Data._
+
 /**
  * Tests Shredder
  */
@@ -28,23 +31,23 @@ class JsonShredderSpec extends Specification {
 
   "The fixSchema method" should {
     "convert a snake_case schema to an Elasticsearch field name" in {
-      val actual = JsonShredder.fixSchema(JsonShredder.UnstructEvent, "iglu:com.snowplowanalytics.snowplow/change_form/jsonschema/1-0-0")
-      actual must beRight("unstruct_event_com_snowplowanalytics_snowplow_change_form_1")
+      val actual = fixSchema(UnstructEvent, "iglu:com.snowplowanalytics.snowplow/change_form/jsonschema/1-0-0")
+      actual must beEqualTo("unstruct_event_com_snowplowanalytics_snowplow_change_form_1")
     }
 
     "convert a PascalCase schema to an Elasticsearch field name" in {
-      val actual = JsonShredder.fixSchema(JsonShredder.Contexts, "iglu:com.acme/PascalCaseContext/jsonschema/1-0-0")
-      actual must beRight("contexts_com_acme_pascal_case_context_1")
+      val actual = fixSchema(Contexts(DerivedContexts), "iglu:com.acme/PascalCaseContext/jsonschema/1-0-0")
+      actual must beEqualTo("contexts_com_acme_pascal_case_context_1")
     }
 
     "convert a schema with consecutive capital letters to an Elasticsearch field name" in {
-      val actual = JsonShredder.fixSchema(JsonShredder.Contexts, "iglu:com.acme/ContextUK/jsonschema/1-0-0")
-      actual must beRight("contexts_com_acme_context_uk_1")
+      val actual = fixSchema(Contexts(CustomContexts), "iglu:com.acme/ContextUK/jsonschema/1-0-0")
+      actual must beEqualTo("contexts_com_acme_context_uk_1")
     }
 
     "convert a schema with hyphens Elasticsearch field name" in {
-      val actual = JsonShredder.fixSchema(JsonShredder.Contexts, "iglu:com.acme/lisp-case/jsonschema/1-0-0")
-      actual must beRight("contexts_com_acme_lisp_case_1")
+      val actual = fixSchema(Contexts(CustomContexts), "iglu:com.acme/lisp-case/jsonschema/1-0-0")
+      actual must beEqualTo("contexts_com_acme_lisp_case_1")
     }
   }
 
@@ -60,8 +63,10 @@ class JsonShredderSpec extends Specification {
           }
         }
       }""")
-      val expected = JObject("unstruct_event_com_snowplowanalytics_snowplow_social_interaction_1" ->
-        (("action" -> "like") ~ ("network" -> "fb")))
+      val expected = UnstructEventOutput(
+        "iglu:com.snowplowanalytics.snowplow/social_interaction/jsonschema/1-0-0",
+        JObject(("action", "like"), ("network", "fb"))
+      )
 
       actual must beRight(expected)
     }
@@ -84,7 +89,7 @@ class JsonShredderSpec extends Specification {
 
   "The parseContexts method" should {
     "fix up a custom contexts JSON" in {
-      val actual = JsonShredder.parseContexts("""{
+      val actual = JsonShredder.parseContexts(CustomContexts)("""{
         "schema": "any",
         "data": [
           {
@@ -107,14 +112,16 @@ class JsonShredderSpec extends Specification {
           }
         ]
       }""")
-      val expected = ("contexts_com_acme_duplicated_20" -> List(("value" -> 2), ("value" -> 1))) ~
-        ("contexts_com_acme_unduplicated_1" -> List(("type" -> "test")))
+      val expected: Map[String, List[JValue]] = Map(
+        "iglu:com.acme/duplicated/jsonschema/20-0-5" -> List(("value", 2), ("value", 1)),
+        "iglu:com.acme/unduplicated/jsonschema/1-0-0" -> List(("type", "test"))
+      )
 
-      actual must beRight(expected)
+      actual must beRight(ContextsOutput(CustomContexts, expected))
     }
 
     "fail a malformed custom contexts JSON" in {
-      val actual = JsonShredder.parseContexts("""{
+      val actual = JsonShredder.parseContexts(DerivedContexts)("""{
         "schema": "any",
         "data": [
           {
@@ -145,7 +152,7 @@ class JsonShredderSpec extends Specification {
     }
 
     "allow empty custom context" in {
-      val actual = JsonShredder.parseContexts("""{
+      val actual = JsonShredder.parseContexts(CustomContexts)("""{
         "schema": "any",
         "data": []
       }""")
