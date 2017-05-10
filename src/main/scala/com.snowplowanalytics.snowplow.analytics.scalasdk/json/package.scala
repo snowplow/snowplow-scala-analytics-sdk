@@ -18,21 +18,33 @@
  */
 package com.snowplowanalytics.snowplow.analytics.scalasdk
 
-// json4s
-import org.json4s._
+// This library
+import json.Data._
+
 
 package object json {
+
+  type Validated[+A] = Either[List[String], A]
 
   /**
    * The event as a shredded, stringified JSON on Success,
    * or a strings on Failure.
    */
-  type ValidatedEvent = Either[List[String], String]
+  type ValidatedEvent = Validated[String]
+
+  /**
+   * The event as a shredded, stringified JSON with inventory on Success,
+   * or a strings on Failure.
+   */
+  type ValidatedEventWithInventory = Validated[EventWithInventory]
 
   /**
    * Functions used to change a TSV pair to a JObject
+   * Usually returns single key-value pair, but for JSON fields, such as
+   * contexts returns all contained key-value pairs
    */
-  type TsvToJsonConverter = (String, String) => Either[List[String], JObject]
+  type TsvToJsonConverter = (String, String) => Validated[TsvConverterOutput]
+
 
   /**
    * Replacement for Scalaz Either type classes
