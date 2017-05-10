@@ -28,18 +28,71 @@ import org.json4s.JsonDSL._
 // Jackson
 import com.fasterxml.jackson.core.JsonParseException
 
+// This library
+import Data._
+
 /**
- * Object to xxx
+ * TSV to JSON
  */
 object EventTransformer {
 
-  private val StringField: TsvToJsonConverter = (key, value) => Right(JObject(key -> JString(value)))
-  private val IntField: TsvToJsonConverter = (key, value) => Right(JObject(key -> JInt(value.toInt)))
-  private val BoolField: TsvToJsonConverter = handleBooleanField
-  private val DoubleField: TsvToJsonConverter = (key, value) => Right(JObject(key -> JDouble(value.toDouble)))
-  private val TstampField: TsvToJsonConverter = (key, value) => Right(JObject(key -> JString(reformatTstamp(value))))
-  private val ContextsField: TsvToJsonConverter = (_, value) => JsonShredder.parseContexts(value)
-  private val UnstructField: TsvToJsonConverter = (_, value) => JsonShredder.parseUnstruct(value)
+
+  /**
+   * Convert a string with Enriched event TSV to a JSON string
+   *
+   * @param line enriched event TSV line
+   * @return ValidatedRecord for the event
+   */
+  def transform(line: String): ValidatedEvent = {
+    // The -1 is necessary to prevent trailing empty strings from being discarded
+    jsonifyGoodEvent(line.split("\t", -1)).map { case (_, json) => compact(json) }
+  }
+
+  /**
+   * Convert an Amazon Kinesis record to a JSON string
+   *
+   * @param line enriched event TSV line
+   * @return ValidatedRecord for the event
+   */
+  def transformWithInventory(line: String): ValidatedEventWithInventory = {
+    jsonifyGoodEvent(line.split("\t", -1)).map { case (inventory, json) =>
+      EventWithInventory(compact(json), inventory)
+    }
+  }
+
+  /**
+   * Converts an array of field values to a JSON whose keys are the field names
+   *
+   * @param event Array of values for the event
+   * @return ValidatedRecord containing JSON for the event and the event_id (if it exists)
+   */
+  def jsonifyGoodEvent(event: Array[String]): Validated[(Set[InventoryItem], JObject)] = {
+    if (event.length != Fields.size) {
+      Left(List(s"Expected ${Fields.size} fields, received ${event.length} fields. This may be caused by attempting to use this SDK version on an older (pre-R73) or newer version of Snowplow enriched events."))
+    } else {
+      val geoLocation: JObject = {
+        val latitude = event(GeopointIndexes.latitude)
+        val longitude = event(GeopointIndexes.longitude)
+        if (latitude.nonEmpty && longitude.nonEmpty) {
+          JObject("geo_location" -> JString(s"$latitude,$longitude"))
+        } else {
+          JObject()
+        }
+      }
+
+      convertEvent(event.toList, geoLocation)
+    }
+  }
+
+
+  private val StringField: TsvToJsonConverter          = (key, value) => Right(PrimitiveOutput(key, JString(value)))
+  private val IntField: TsvToJsonConverter             = (key, value) => Right(PrimitiveOutput(key, JInt(value.toInt)))
+  private val DoubleField: TsvToJsonConverter          = (key, value) => Right(PrimitiveOutput(key, JDouble(value.toDouble)))
+  private val TstampField: TsvToJsonConverter          = (key, value) => Right(PrimitiveOutput(key, JString(reformatTstamp(value))))
+  private val BoolField: TsvToJsonConverter            = (key, value) => handleBooleanField(key, value)
+  private val CustomContextsField: TsvToJsonConverter  = (_, value)   => JsonShredder.parseContexts(CustomContexts)(value)
+  private val DerivedContextsField: TsvToJsonConverter = (_, value)   => JsonShredder.parseContexts(DerivedContexts)(value)
+  private val UnstructField: TsvToJsonConverter        = (_, value)   => JsonShredder.parseUnstruct(value)
 
   private val Fields = List(
     "app_id" -> StringField,
@@ -94,7 +147,7 @@ object EventTransformer {
     "mkt_term" -> StringField,
     "mkt_content" -> StringField,
     "mkt_campaign" -> StringField,
-    "contexts" -> ContextsField,
+    "contexts" -> CustomContextsField,
     "se_category" -> StringField,
     "se_action" -> StringField,
     "se_label" -> StringField,
@@ -164,7 +217,7 @@ object EventTransformer {
     "dvce_sent_tstamp" -> TstampField,
     "refr_domain_userid" -> StringField,
     "refr_device_tstamp" -> TstampField,
-    "derived_contexts" -> ContextsField,
+    "derived_contexts" -> DerivedContextsField,
     "domain_sessionid" -> StringField,
     "derived_tstamp" -> TstampField,
     "event_vendor" -> StringField,
@@ -186,18 +239,21 @@ object EventTransformer {
    * @param fieldInformation ((field name, field-to-JObject conversion function), field value)
    * @return JObject representing a single field in the JSON
    */
-  private def converter(fieldInformation: ((String, TsvToJsonConverter), String)): Either[List[String], JObject] = {
+  private def converter(fieldInformation: ((String, TsvToJsonConverter), String)): Validated[(Set[InventoryItem], JObject)] = {
     val ((fieldName, fieldConversionFunction), fieldValue) = fieldInformation
     if (fieldValue.isEmpty) {
-      Right(JObject(fieldName -> JNull))
+      if (fieldName.startsWith("contexts") || fieldName.startsWith("unstruct_event") || fieldName.startsWith("derived_contexts")) {
+        Right((Set.empty, JObject(fieldName -> JNothing)))
+      } else {
+        Right((Set.empty, JObject(fieldName -> JNull)))
+      }
     } else {
       try {
-        fieldConversionFunction(fieldName, fieldValue)
+        fieldConversionFunction(fieldName, fieldValue).map(_.jsonAndInventory)
       } catch {
         case e @ (_ : IllegalArgumentException | _: JsonParseException) =>
           Left(List("Value [%s] is not valid for field [%s]: %s".format(fieldValue, fieldName, e.getMessage)))
       }
-
     }
   }
 
@@ -216,52 +272,25 @@ object EventTransformer {
    * @param value The field value - should be "0" or "1"
    * @return Validated JObject
    */
-  private def handleBooleanField(key: String, value: String): Either[List[String], JObject] =
+  private def handleBooleanField(key: String, value: String): Validated[PrimitiveOutput] =
     value match {
-      case "1" => Right(JObject(key -> JBool(true)))
-      case "0" => Right(JObject(key -> JBool(false)))
+      case "1" => Right(PrimitiveOutput(key, JBool(true)))
+      case "0" => Right(PrimitiveOutput(key, JBool(false)))
       case _   => Left(List("Value [%s] is not valid for field [%s]: expected 0 or 1".format(value, key)))
     }
 
   /**
-   * Converts an aray of field values to a JSON whose keys are the field names
+   * Apply to each field corresponding converter and merge key-value pairs list into a single JSON object
    *
-   * @param event Array of values for the event
-   * @return ValidatedRecord containing JSON for the event and the event_id (if it exists)
+   * @param eventTsv list of enriched event columns
+   * @param initial initial (probably empty) JSON object
+   * @return either aggregated list of converter errors or merged JSON Object
    */
-  private def jsonifyGoodEvent(event: Array[String]): ValidatedEvent = {
+  private[json] def convertEvent(eventTsv: List[String], initial: JObject): Validated[(Set[InventoryItem], JObject)] = {
+    val initialPair = (Set.empty[InventoryItem], initial)
 
-    // TODO: this will be removed when this function takes an enriched event POJO instead
-    if (event.length != Fields.size) {
-      Left(List(s"Expected ${Fields.size} fields, received ${event.length} fields. This may be caused by attempting to use this SDK version on an older or newer version of Snowplow enriched events."))
-    } else {
-
-      val geoLocation: JObject = {
-        val latitude = event(GeopointIndexes.latitude)
-        val longitude = event(GeopointIndexes.longitude)
-        if (latitude.nonEmpty && longitude.nonEmpty) {
-          JObject("geo_location" -> JString(s"$latitude,$longitude"))
-        } else {
-          JObject()
-        }
-      }
-      val validatedJObjects: List[Either[List[String], JObject]] = Fields.zip(event.toList).map(converter)
-      val switched: Either[List[String], List[JObject]] = validatedJObjects.traverseEitherL
-      switched.map( x => {
-        val j = x.fold(geoLocation)((x, y) => y ~ x)
-        compact(j)
-      })
+    Fields.zip(eventTsv).map(x => converter(x)).traverseEitherL.map { kvPairsList =>
+      kvPairsList.fold(initialPair) { case ((accumInventory, accumObject), (inventory, kvPair)) => (accumInventory ++ inventory, kvPair ~ accumObject)}
     }
-  }
-
-  /**
-   * Convert an Amazon Kinesis record to a JSON string
-   *
-   * @param line enriched event TSV line
-   * @return ValidatedRecord for the event
-   */
-  def transform(line: String): ValidatedEvent = {
-    // The -1 is necessary to prevent trailing empty strings from being discarded
-    jsonifyGoodEvent(line.split("\t", -1))
   }
 }
