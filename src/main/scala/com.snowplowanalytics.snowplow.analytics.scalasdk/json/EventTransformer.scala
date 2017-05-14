@@ -251,11 +251,12 @@ object EventTransformer {
       try {
         fieldConversionFunction(fieldName, fieldValue).map(_.jsonAndInventory)
       } catch {
-        case e @ (_ : IllegalArgumentException | _: JsonParseException) =>
+        case e@(_: IllegalArgumentException | _: JsonParseException) =>
           Left(List("Value [%s] is not valid for field [%s]: %s".format(fieldValue, fieldName, e.getMessage)))
       }
     }
   }
+
 
   /**
    * Converts a timestamp to ISO 8601 format
