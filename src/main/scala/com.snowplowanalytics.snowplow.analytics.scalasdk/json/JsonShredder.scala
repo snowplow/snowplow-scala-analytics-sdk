@@ -1,5 +1,5 @@
  /*
- * Copyright (c) 2016 Snowplow Analytics Ltd.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd.
  * All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
@@ -20,18 +20,15 @@ package com.snowplowanalytics.snowplow
 package analytics.scalasdk
 package json
 
-// Scalaz
-import scalaz._
-import Scalaz._
-
 // json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import org.json4s.JsonDSL._
 
 // Scala
-import scala.util.matching.Regex
 import scala.annotation.tailrec
+
+// This library
+import Data._
 
 /**
  * Converts unstructured events and custom contexts to a format which the Elasticsearch
@@ -39,40 +36,21 @@ import scala.annotation.tailrec
  */
 object JsonShredder {
 
-  private val schemaPattern = """.+:([a-zA-Z0-9_\.\-]+)/([a-zA-Z0-9_]+)/[^/]+/(.*)""".r
+  /**
+    * Canonical Iglu Schema URI regex
+    * TODO: replace with Iglu core: https://github.com/snowplow/snowplow-scala-analytics-sdk/issues/38
+    */
+  val schemaPattern = (
+    "^iglu:" +                            // Protocol
+      "([a-zA-Z0-9-_.]+)/" +              // Vendor
+      "([a-zA-Z0-9-_]+)/" +               // Name
+      "([a-zA-Z0-9-_]+)/" +               // Format
+      "([1-9][0-9]*" +                    // MODEL (cannot start with 0)
+      "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
+                                          // Extract whole SchemaVer within single group
 
   /**
-   * Create an Elasticsearch field name from a schema
-   *
-   * "iglu:com.acme/PascalCase/jsonschema/13-0-0" -> "context_com_acme_pascal_case_13"
-   *
-   * @param prefix "context" or "unstruct_event"
-   * @param schema Schema field from an incoming JSON
-   * @return Elasticsearch field name
-   */
-   // TODO: move this to shared storage/shredding utils
-   // See https://github.com/snowplow/snowplow/issues/1189
-  def fixSchema(prefix: String, schema: String): ValidationNel[String, String] = {
-    schema match {
-      case schemaPattern(organization, name, schemaVer) => {
-
-        // Split the vendor's reversed domain name using underscores rather than dots
-        val snakeCaseOrganization = organization.replaceAll("""[\.\-]""", "_").toLowerCase
-
-        // Change the name from PascalCase to snake_case if necessary
-        val snakeCaseName = name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase
-
-        // Extract the schemaver version's model
-        val model = schemaVer.split("-")(0)
-
-        s"${prefix}_${snakeCaseOrganization}_${snakeCaseName}_${model}".successNel
-      }
-      case _ => "Schema %s does not conform to regular expression %s".format(schema, schemaPattern.toString).failNel
-    }
-  }
-
-  /**
-   * Convert a contexts JSON to an Elasticsearch-compatible JObject
+   * Convert a contexts JSON to an Elasticsearch-compatible JObject enveloped in `ContextOutput`
    * For example, the JSON
    *
    *  {
@@ -102,14 +80,15 @@ object JsonShredder {
    * would become
    *
    *  {
-   *    "context_com_acme_duplicated_1": [{"value": 1}, {"value": 2}],
-   *    "context_com_acme_unduplicated_1": [{"unique": true}]
+   *    "iglu:com.acme/duplicated/jsonschema/1-0-0": [{"value": 1}, {"value": 2}],
+   *    "iglu:com.acme/unduplicated/jsonschema/1-0-0": [{"unique": true}]
    *  }
    *
+   * @param contextsType contexts flavor (derived or custom)
    * @param contexts Contexts JSON
    * @return Contexts JSON in an Elasticsearch-compatible format
    */
-  def parseContexts(contexts: String): ValidationNel[String, JObject] = {
+  def parseContexts(contextsType: ContextsType)(contexts: String): Validated[ContextsOutput] = {
 
     /**
      * Validates and pairs up the schema and data fields without grouping the same schemas together
@@ -137,51 +116,46 @@ object JsonShredder {
      * would become
      *
      * [
-     *   {"context_com_acme_duplicated_1": {"value": 1}},
-     *   {"context_com_acme_duplicated_1": {"value": 2}}
+     *   {"iglu:com.acme/duplicated/jsonschema/1-0-0": {"value": 1}},
+     *   {"iglu:com.acme/duplicated/jsonschema/1-0-0": {"value": 2}}
      * ]
      *
      * @param contextJsons List of inner custom context JSONs
      * @param accumulator Custom contexts which have already been parsed
      * @return List of validated tuples containing a fixed schema string and the original data JObject
      */
-    @tailrec def innerParseContexts(contextJsons: List[JValue], accumulator: List[ValidationNel[String, (String, JValue)]]):
-      List[ValidationNel[String, (String, JValue)]] = {
+    @tailrec def innerParseContexts(
+      contextJsons: List[JValue],
+      accumulator: List[Either[List[String], JField]]
+    ): List[Either[List[String], JField]] = {
 
       contextJsons match {
         case Nil => accumulator
-        case head :: tail => {
-          val context = head
+        case context :: tail =>
           val innerData = context \ "data" match {
-            case JNothing => "Could not extract inner data field from custom context".failNel // TODO: decide whether to enforce object type of data
-            case d => d.successNel
+            case JNothing => Left("Could not extract inner data field from custom context")
+            case d => Right(d)
           }
-          val fixedSchema: ValidationNel[String, String] = context \ "schema" match {
-            case JString(schema) => fixSchema("contexts", schema)
-            case _ => "Context JSON did not contain a stringly typed schema field".failNel
+          val fixedSchema = context \ "schema" match {
+            case JString(schema) if schemaPattern.pattern.matcher(schema).matches => Right(schema)
+            case JString(schema) => Left(s"Schema [$schema] does not conform to Iglu Schema URI regular expression")
+            case _ => Left("Context JSON did not contain a stringly typed schema field")
           }
 
-          val schemaDataPair = (fixedSchema |@| innerData) {_ -> _}
+          val schemaDataPair = fixedSchema.map2(innerData) {_ -> _}
 
           innerParseContexts(tail, schemaDataPair :: accumulator)
-        }
       }
     }
 
-    val json = parse(contexts)
-    val data = json \ "data"
-
-    data match {
-      case JArray(Nil) => "Custom contexts data array is empty".failNel
-      case JArray(ls) => {
-        val innerContexts: ValidationNel[String, List[(String, JValue)]] = innerParseContexts(ls, Nil).sequenceU
-
-        // Group contexts with the same schema together
-        innerContexts.map(_.groupBy(_._1).map(pair => (pair._1, pair._2.map(_._2))))
-      }
-      case _ => "Could not extract contexts data field as an array".failNel
+    val result = parse(contexts) \ "data" match {
+      case JArray(jsons) =>
+        val innerContexts = innerParseContexts(jsons, Nil).traverseEitherL
+        innerContexts.map(groupJsons)
+      case _ => Left(List("Could not extract contexts data field as an array"))
     }
 
+    result.map(map => ContextsOutput(contextsType, map))
   }
 
   /**
@@ -201,25 +175,33 @@ object JsonShredder {
    * would become
    *
    *  {
-   *    "unstruct_com_snowplowanalytics_snowplow_link_click_1": {"key": "value"}
+   *    "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1": {"key": "value"}
    *  }
    *
    * @param unstruct Unstructured event JSON
    * @return Unstructured event JSON in an Elasticsearch-compatible format
    */
-  def parseUnstruct(unstruct: String): ValidationNel[String, JObject] = {
+  def parseUnstruct(unstruct: String): Validated[UnstructEventOutput] = {
     val json = parse(unstruct)
     val data = json \ "data"
     val schema = data \ "schema"
-    val innerData = data \ "data" match {
-      case JNothing => "Could not extract inner data field from unstructured event".failNel // TODO: decide whether to enforce object type of data
-      case d => d.successNel
+    val innerData: Either[String, JValue] = data \ "data" match {
+      case JNothing => Left("Could not extract inner data field from unstructured event") // TODO: decide whether to enforce object type of data
+      case d => Right(d)
     }
     val fixedSchema = schema match {
-      case JString(s) => fixSchema("unstruct_event", s)
-      case _ => "Unstructured event JSON did not contain a stringly typed schema field".failNel
+      case JString(schema) if schemaPattern.pattern.matcher(schema).matches => Right(schema)
+      case JString(schema) => Left(s"Schema [$schema] does not conform to Iglu Schema URI regular expression")
+      case _ => Left("Unstructured event JSON did not contain a stringly typed schema field")
     }
 
-    (fixedSchema |@| innerData) {_ -> _}
+    val result = fixedSchema.map2(innerData) {_ -> _}
+    result.map { case (igluUri, json) => UnstructEventOutput(igluUri, json) }
   }
+
+  /**
+   * Group list of schema-data pairs into Map with data grouped into list by its schema
+   */
+  private def groupJsons(schemaPairs: List[(IgluUri, JValue)]): Map[IgluUri, List[JValue]] =
+    schemaPairs.groupBy(_._1).map { case (igluUri, pairs) => (igluUri, pairs.map(_._2)) }
 }
