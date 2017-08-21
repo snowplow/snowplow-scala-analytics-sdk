@@ -152,7 +152,7 @@ object EventTransformer {
     "se_action" -> StringField,
     "se_label" -> StringField,
     "se_property" -> StringField,
-    "se_value" -> StringField,
+    "se_value" -> DoubleField,
     "unstruct_event" -> UnstructField,
     "tr_orderid" -> StringField,
     "tr_affiliation" -> StringField,
