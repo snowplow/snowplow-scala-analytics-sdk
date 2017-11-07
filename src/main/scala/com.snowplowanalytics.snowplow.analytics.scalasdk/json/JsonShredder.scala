@@ -73,6 +73,12 @@ object JsonShredder {
    *        "data": {
    *          "value": 2
    *        }
+   *      },
+   *      {
+   *        "schema": "iglu:com.acme/duplicated/jsonschema/1-0-1",
+   *        "data": {
+   *          "value": 3
+   *        }
    *      }
    *    ]
    *  }
@@ -81,8 +87,11 @@ object JsonShredder {
    *
    *  {
    *    "iglu:com.acme/duplicated/jsonschema/1-0-0": [{"value": 1}, {"value": 2}],
+   *    "iglu:com.acme/duplicated/jsonschema/1-0-1": [{"value": 3}],
    *    "iglu:com.acme/unduplicated/jsonschema/1-0-0": [{"unique": true}]
    *  }
+   *
+   * NOTE: it does not merge contexts on per-model basis (as we can see from 1st and 2nd items above)
    *
    * @param contextsType contexts flavor (derived or custom)
    * @param contexts Contexts JSON
