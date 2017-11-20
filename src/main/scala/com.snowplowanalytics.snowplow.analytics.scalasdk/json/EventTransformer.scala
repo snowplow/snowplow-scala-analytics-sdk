@@ -290,8 +290,45 @@ object EventTransformer {
   private[json] def convertEvent(eventTsv: List[String], initial: JObject): Validated[(Set[InventoryItem], JObject)] = {
     val initialPair = (Set.empty[InventoryItem], initial)
 
-    Fields.zip(eventTsv).map(x => converter(x)).traverseEitherL.map { kvPairsList =>
+    val result = Fields.zip(eventTsv).map(x => converter(x)).traverseEitherL.map { kvPairsList =>
       kvPairsList.fold(initialPair) { case ((accumInventory, accumObject), (inventory, kvPair)) => (accumInventory ++ inventory, kvPair ~ accumObject)}
     }
+
+    result.map { case (inventory, json) => (inventory, foldContexts(json)) }
+  }
+
+  /**
+    * Merge context-arrays into its own JSON-keys
+    * `{"contexts_foo_1": [{"value": 1}], "contexts_foo_1": [{"value": 2}]`
+    * becomes
+    * `{"contexts_foo_1": [{"value": 1}, {"value": 2}]`
+    *
+    * NOTE: this functions has assumptions:
+    * 1. `JObject` can contain multiple identical keys (valid as per Json4s)
+    * 2. All keys with `contexts_` can contain only arrays
+    *
+    * @param eventObject almost-ready enriched event JSON
+    * @return final enriched JSON
+    */
+  private[json] def foldContexts(eventObject: JObject): JObject = {
+    val (contexts, nonContexts) = eventObject.obj.partition { case (k, _) => k.startsWith("contexts_")}
+
+    // Traverse all found contexts and merge-in twin-contexts
+    val foldedContexts = contexts.foldLeft(List.empty[(String, JValue)]) {
+      case (collapsed, (currentKey, currentContexts: JArray)) =>
+        // Merge context-arrays if keys are identical
+        val merged = collapsed.map {
+          case (contextKey, contexts: JArray) if contextKey == currentKey =>
+            (currentKey, JArray(contexts.arr ++ currentContexts.arr))
+          case other => other
+        }
+
+        // Make sure only one instance of particular context resides in `collapsed`
+        val keys = collapsed.map(_._1)
+        if (keys.contains(currentKey)) merged else (currentKey, currentContexts) :: merged
+
+      case (collapsed, (key, value)) => (key, value) :: collapsed   // Should never happen
+    }
+    JObject(foldedContexts ++ nonContexts)
   }
 }

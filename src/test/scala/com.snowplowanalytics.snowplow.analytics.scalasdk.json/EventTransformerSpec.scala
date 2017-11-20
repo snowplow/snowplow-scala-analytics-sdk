@@ -92,6 +92,43 @@ class EventTransformerSpec extends Specification {
     ]
   }"""
 
+  val contextsWithDuplicate = """{
+    "schema": "iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0",
+    "data": [
+      {
+        "schema": "iglu:org.schema/WebPage/jsonschema/1-0-0",
+        "data": {
+          "genre": "blog",
+          "inLanguage": "en-US",
+          "datePublished": "2014-11-06T00:00:00Z",
+          "author": "Fred Blundun",
+          "breadcrumb": [
+            "blog",
+            "releases"
+          ],
+          "keywords": [
+            "snowplow",
+            "javascript",
+            "tracker",
+            "event"
+          ]
+        }
+      },
+      {
+        "schema": "iglu:org.acme/context_one/jsonschema/1-0-0",
+        "data": {
+          "item": 1
+        }
+      },
+      {
+        "schema": "iglu:org.acme/context_one/jsonschema/1-0-1",
+        "data": {
+          "item": 2
+        }
+      }
+    ]
+  }"""
+
   val derivedContextsJson = """{
     "schema": "iglu:com.snowplowanalytics.snowplow\/contexts\/jsonschema\/1-0-1",
     "data": [
@@ -1088,6 +1125,235 @@ class EventTransformerSpec extends Specification {
       val diffExpectation = (resultJson diff expected) mustEqual Diff(JNothing, JNothing, JNothing)
 
       diffExpectation.and(inventoryExpectation)
+    }
+  }
+
+  "The 'jsonifyGoodEvent' method" should {
+    "successfully merge two matching contexts into 2-elements array" in {
+
+      val input = List(
+        "app_id" -> "angry-birds",
+        "platform" -> "web",
+        "etl_tstamp" -> "2017-01-26 00:01:25.292",
+        "collector_tstamp" -> "2013-11-26 00:02:05",
+        "dvce_created_tstamp" -> "2013-11-26 00:03:57.885",
+        "event" -> "page_view",
+        "event_id" -> "c6ef3124-b53a-4b13-a233-0088f79dcbcb",
+        "txn_id" -> "41828",
+        "name_tracker" -> "cloudfront-1",
+        "v_tracker" -> "js-2.1.0",
+        "v_collector" -> "clj-tomcat-0.1.0",
+        "v_etl" -> "serde-0.5.2",
+        "user_id" -> "jon.doe@email.com",
+        "user_ipaddress" -> "92.231.54.234",
+        "user_fingerprint" -> "2161814971",
+        "domain_userid" -> "bc2e92ec6c204a14",
+        "domain_sessionidx" -> "3",
+        "network_userid" -> "ecdff4d0-9175-40ac-a8bb-325c49733607",
+        "geo_country" -> "US",
+        "geo_region" -> "TX",
+        "geo_city" -> "New York",
+        "geo_zipcode" -> "94109",
+        "geo_latitude" -> "37.443604",
+        "geo_longitude" -> "-122.4124",
+        "geo_region_name" -> "Florida",
+        "ip_isp" -> "FDN Communications",
+        "ip_organization" -> "Bouygues Telecom",
+        "ip_domain" -> "nuvox.net",
+        "ip_netspeed" -> "Cable/DSL",
+        "page_url" -> "http://www.snowplowanalytics.com",
+        "page_title" -> "On Analytics",
+        "page_referrer" -> "",
+        "page_urlscheme" -> "http",
+        "page_urlhost" -> "www.snowplowanalytics.com",
+        "page_urlport" -> "80",
+        "page_urlpath" -> "/product/index.html",
+        "page_urlquery" -> "id=GTM-DLRG",
+        "page_urlfragment" -> "4-conclusion",
+        "refr_urlscheme" -> "",
+        "refr_urlhost" -> "",
+        "refr_urlport" -> "",
+        "refr_urlpath" -> "",
+        "refr_urlquery" -> "",
+        "refr_urlfragment" -> "",
+        "refr_medium" -> "",
+        "refr_source" -> "",
+        "refr_term" -> "",
+        "mkt_medium" -> "",
+        "mkt_source" -> "",
+        "mkt_term" -> "",
+        "mkt_content" -> "",
+        "mkt_campaign" -> "",
+        "contexts" -> contextsWithDuplicate,
+        "se_category" -> "",
+        "se_action" -> "",
+        "se_label" -> "",
+        "se_property" -> "",
+        "se_value" -> "",
+        "unstruct_event" -> unstructJson,
+        "tr_orderid" -> "",
+        "tr_affiliation" -> "",
+        "tr_total" -> "",
+        "tr_tax" -> "",
+        "tr_shipping" -> "",
+        "tr_city" -> "",
+        "tr_state" -> "",
+        "tr_country" -> "",
+        "ti_orderid" -> "",
+        "ti_sku" -> "",
+        "ti_name" -> "",
+        "ti_category" -> "",
+        "ti_price" -> "",
+        "ti_quantity" -> "",
+        "pp_xoffset_min" -> "",
+        "pp_xoffset_max" -> "",
+        "pp_yoffset_min" -> "",
+        "pp_yoffset_max" -> "",
+        "useragent" -> "",
+        "br_name" -> "",
+        "br_family" -> "",
+        "br_version" -> "",
+        "br_type" -> "",
+        "br_renderengine" -> "",
+        "br_lang" -> "",
+        "br_features_pdf" -> "1",
+        "br_features_flash" -> "0",
+        "br_features_java" -> "",
+        "br_features_director" -> "",
+        "br_features_quicktime" -> "",
+        "br_features_realplayer" -> "",
+        "br_features_windowsmedia" -> "",
+        "br_features_gears" -> "",
+        "br_features_silverlight" -> "",
+        "br_cookies" -> "",
+        "br_colordepth" -> "",
+        "br_viewwidth" -> "",
+        "br_viewheight" -> "",
+        "os_name" -> "",
+        "os_family" -> "",
+        "os_manufacturer" -> "",
+        "os_timezone" -> "",
+        "dvce_type" -> "",
+        "dvce_ismobile" -> "",
+        "dvce_screenwidth" -> "",
+        "dvce_screenheight" -> "",
+        "doc_charset" -> "",
+        "doc_width" -> "",
+        "doc_height" -> "",
+        "tr_currency" -> "",
+        "tr_total_base" -> "",
+        "tr_tax_base" -> "",
+        "tr_shipping_base" -> "",
+        "ti_currency" -> "",
+        "ti_price_base" -> "",
+        "base_currency" -> "",
+        "geo_timezone" -> "",
+        "mkt_clickid" -> "",
+        "mkt_network" -> "",
+        "etl_tags" -> "",
+        "dvce_sent_tstamp" -> "",
+        "refr_domain_userid" -> "",
+        "refr_device_tstamp" -> "",
+        "derived_contexts" -> derivedContextsJson,
+        "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
+        "derived_tstamp" -> "2013-11-26 00:03:57.886",
+        "event_vendor" -> "com.snowplowanalytics.snowplow",
+        "event_name" -> "link_click",
+        "event_format" -> "jsonschema",
+        "event_version" -> "1-0-0",
+        "event_fingerprint" -> "e3dbfa9cca0412c3d4052863cefb547f",
+        "true_tstamp" -> "2013-11-26 00:03:57.886"
+      )
+
+      val (_, json) = EventTransformer
+        .jsonifyGoodEvent(input.map(_._2).toArray)
+        .right
+        .toOption
+        .getOrElse(throw new RuntimeException("Event failed transformation"))
+
+      val contexts = json match {
+        case obj: JObject => obj.obj.filter { case (key, _) => key == "contexts_org_acme_context_one_1" }
+        case _ => Nil
+      }
+
+      // List[(Context, ContextCardinality)]
+      val result = contexts.map { case (k, v) => v match {
+        case a: JArray => (k, a.arr.length)
+        case _ => (k, 0)
+      } }
+
+      result should beEqualTo(List("contexts_org_acme_context_one_1" -> 2))
+    }
+  }
+
+  "The 'foldContects' function" should {
+    "successfully merge three contexts" in {
+      val input = parse(
+        """
+          |{
+          |  "contexts_one_1": [{"value": 1}],
+          |  "app_id": "foo",
+          |  "contexts_one_1": [{"value": 2}],
+          |  "contexts_one_1": [{"value": 3}]
+          |}
+        """.stripMargin).asInstanceOf[JObject]
+
+      val expected = parse(
+        """
+          |{
+          |  "app_id": "foo",
+          |  "contexts_one_1": [{"value": 1}, {"value": 2}, {"value": 3}]
+          |}
+        """.stripMargin)
+
+      val result = EventTransformer.foldContexts(input)
+      result must beEqualTo(expected)
+    }
+
+    "not merge contexts with different models" in {
+      val input = parse(
+        """
+          |{
+          |  "app_id": "foo",
+          |  "contexts_one_1": [{"value": 1}],
+          |  "contexts_one_2": [{"value": 2}]
+          |}
+        """.stripMargin).asInstanceOf[JObject]
+
+      val expected = parse(
+        """
+          |{
+          |  "app_id": "foo",
+          |  "contexts_one_1": [{"value": 1}],
+          |  "contexts_one_2": [{"value": 2}]
+          |}
+        """.stripMargin)
+
+      val result = EventTransformer.foldContexts(input)
+      result must beEqualTo(expected)
+    }
+
+    "successfully merge contexts with more than one context" in {
+      val input = parse(
+        """
+          |{
+          |  "contexts_one_1": [{"value": 1}],
+          |  "app_id": "foo",
+          |  "contexts_one_1": [{"value": 2}, {"value": 2}],
+          |  "contexts_one_1": [{"value": 3}, {"value": 4}]
+          |}
+        """.stripMargin).asInstanceOf[JObject]
+
+      val expected = parse(
+        """
+          |{
+          |  "app_id": "foo",
+          |  "contexts_one_1": [{"value": 1}, {"value": 2}, {"value": 2}, {"value": 3}, {"value": 4}]
+          |}
+        """.stripMargin)
+
+      val result = EventTransformer.foldContexts(input)
+      result must beEqualTo(expected)
     }
   }
 
