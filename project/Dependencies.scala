@@ -15,7 +15,7 @@ import sbt._
 object Dependencies {
 
   object V {
-    val aws            = "1.11.118"
+    val aws            = "1.11.289"
     val json4s         = "3.2.11"
     // Scala (test only)
     val specs2         = "3.8.9"
