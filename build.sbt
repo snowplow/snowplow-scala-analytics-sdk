@@ -18,7 +18,7 @@ lazy val root = project.in(file("."))
     version            := "0.3.0",
     description        := "Scala analytics SDK for Snowplow",
     scalaVersion       := "2.11.12",
-    crossScalaVersions := Seq("2.10.6", "2.11.12")
+    crossScalaVersions := Seq("2.10.6", "2.11.12", "2.12.4")
   ))
   .settings(BuildSettings.buildSettings)
   .settings(BuildSettings.publishSettings)
