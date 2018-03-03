@@ -1,3 +1,13 @@
+Version 0.3.0 (2018-03-06)
+--------------------------
+Add Scala 2.12 support (#41)
+Bump json4s to 3.2.11 (#46)
+Bump aws-java-sdk to 1.11.289 (#48)
+Bump Scala 2.11 to 2.11.12 (#47)
+Bump SBT to 1.1.1 (close #49)
+Extend copyright notice to 2018 (#51)
+Change se_value to Double (#52)
+
 Version 0.2.1 (2017-11-20)
 --------------------------
 Fix non-merging matching contexts (#44)
