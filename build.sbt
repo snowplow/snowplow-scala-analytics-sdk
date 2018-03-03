@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -15,7 +15,7 @@ lazy val root = project.in(file("."))
   .settings(Seq[Setting[_]](
     name               := "snowplow-scala-analytics-sdk",
     organization       := "com.snowplowanalytics",
-    version            := "0.2.1",
+    version            := "0.3.0",
     description        := "Scala analytics SDK for Snowplow",
     scalaVersion       := "2.10.6",
     crossScalaVersions := Seq("2.10.6", "2.11.5")

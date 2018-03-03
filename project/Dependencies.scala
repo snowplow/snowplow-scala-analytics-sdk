@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -16,7 +16,7 @@ object Dependencies {
 
   object V {
     val aws            = "1.11.118"
-    val json4s         = "3.2.10" // See https://github.com/json4s/json4s/issues/212
+    val json4s         = "3.2.11"
     // Scala (test only)
     val specs2         = "3.8.9"
     val scalaCheck     = "1.13.4"
