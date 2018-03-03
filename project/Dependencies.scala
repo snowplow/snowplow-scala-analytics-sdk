@@ -16,7 +16,7 @@ object Dependencies {
 
   object V {
     val aws            = "1.11.118"
-    val json4s         = "3.2.10" // See https://github.com/json4s/json4s/issues/212
+    val json4s         = "3.2.11"
     // Scala (test only)
     val specs2         = "3.8.9"
     val scalaCheck     = "1.13.4"
