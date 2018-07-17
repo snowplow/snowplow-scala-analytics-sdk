@@ -27,10 +27,12 @@ lazy val root = project.in(file("."))
   ))
   .settings(
     libraryDependencies ++= Seq(
-      // Scala
-      Dependencies.json4sJackson,
+      // Java
       Dependencies.s3,
       Dependencies.dynamodb,
+      // Scala
+      Dependencies.igluCoreJson4s,
+      Dependencies.json4sJackson,
       // Scala (test only)
       Dependencies.scalaCheck,
       Dependencies.specs2,

@@ -15,6 +15,7 @@ import sbt._
 object Dependencies {
 
   object V {
+    val igluCore       = "0.2.0"
     val aws            = "1.11.289"
     val json4s         = "3.2.11"
     // Scala (test only)
@@ -22,6 +23,7 @@ object Dependencies {
     val scalaCheck     = "1.13.4"
   }
 
+  val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"     % V.igluCore
   val json4sJackson    = "org.json4s"                 %% "json4s-jackson"       % V.json4s
   val s3               = "com.amazonaws"              % "aws-java-sdk-s3"       % V.aws
   val dynamodb         = "com.amazonaws"              % "aws-java-sdk-dynamodb" % V.aws
