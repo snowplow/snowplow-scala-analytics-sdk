@@ -21,9 +21,9 @@ package analytics.scalasdk
 package json
 
 // json4s
+import org.json4s.JsonDSL._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import org.json4s.JsonDSL._
 
 // Jackson
 import com.fasterxml.jackson.core.JsonParseException
@@ -67,23 +67,99 @@ object EventTransformer {
    * @return ValidatedRecord containing JSON for the event and the event_id (if it exists)
    */
   def jsonifyGoodEvent(event: Array[String]): Validated[(Set[InventoryItem], JObject)] = {
-    if (event.length != Fields.size) {
+    getValidatedJsonEvent(event, true)
+  }
+
+  /**
+    * Converts an array of field values to a validated JSON whose keys are the field names corresponding to the
+    * EnrichedEvent POJO of the Scala Common Enrich project. If there are any self-describing events in the fields:
+    * "unstruct_event", "derived_contexts" or "contexts" these are returned in a "shredded" format (e.g.
+    * "unstruct_event_com_acme_1_myField": "value") when the flatten argument is true. 
+    * When the flatten argument is false the nested structure is returned for those three fields instead.
+    *
+    * @param event Array of values for the event
+    * @param flatten Whether to flatten the fields in "unstruct_event", "contexts" and "derived_contexts"
+    * @return ValidatedRecord containing JSON for the event and the event_id (if it exists)
+    */
+  def getValidatedJsonEvent(event: Array[String], flatten: Boolean): Validated[(Set[InventoryItem], JObject)] = {
+    if (isRightSize(event)) {
       Left(List(s"Expected ${Fields.size} fields, received ${event.length} fields. This may be caused by attempting to use this SDK version on an older (pre-R73) or newer version of Snowplow enriched events."))
     } else {
-      val geoLocation: JObject = {
-        val latitude = event(GeopointIndexes.latitude)
-        val longitude = event(GeopointIndexes.longitude)
-        if (latitude.nonEmpty && longitude.nonEmpty) {
-          JObject("geo_location" -> JString(s"$latitude,$longitude"))
-        } else {
-          JObject()
-        }
-      }
-
-      convertEvent(event.toList, geoLocation)
+      val geoLocation: JObject = getGeoLocationField(event)
+      if (flatten) convertEvent(event.toList, geoLocation)
+      else getJObjectWithNestedStructures(event)
     }
   }
 
+  private def getGeoLocationField(event: Array[String]): JObject = {
+    val latitude = event(GeopointIndexes.latitude)
+    val longitude = event(GeopointIndexes.longitude)
+    if (latitude.nonEmpty && longitude.nonEmpty) {
+      JObject("geo_location" -> JString(s"$latitude,$longitude"))
+    } else {
+      JObject()
+    }
+  }
+
+  private def getJObjectWithNestedStructures(event: Array[String]): Validated[(Set[InventoryItem], JObject)] = {
+    for {
+      jObject <- convertTsvEventToNestedJObject(event)
+    } yield (Set.empty[InventoryItem], getGeoLocationField(event) ~ jObject)
+  }
+
+  /**
+    * Event has been checked for size
+    *
+    * @param event the event array
+    * @return either a list of errors or the JObject representation
+    */
+  private def convertTsvEventToNestedJObject(event: Array[String]): Validated[JObject]= {
+    val validJObjects = Fields.zip(event).map {
+      case ((fieldName, fieldType), fieldValue) => fieldParser(fieldName, fieldValue, fieldType)
+    }
+    validJObjects.partition(_.isLeft) match {
+      case (errors, _) if (errors.nonEmpty) => Left(for (Left(error) <- errors) yield error)
+      case (_, kvs) => Right(JObject(for (Right(kv) <- kvs) yield kv))
+    }
+  }
+
+  private def fieldParser(fieldName: ShredFieldName, fieldValue: String, fieldType: TsvToJsonConverter): Either[String, (String, JValue)] =
+    try {
+      Right(fieldName -> stringToJValue(fieldType, fieldValue))
+    } catch {
+      case nfe: NumberFormatException => Left(nfe.toString)
+      case bfe: BooleanFormatException => Left(bfe.toString)
+    }
+
+  private def stringToJValue(fieldType: TsvToJsonConverter, fieldValue: String): JValue =
+    if (isJObjectType(fieldType)) stringToJObjectConverter(fieldType, fieldValue)
+    else stringToScalarJValueConverter(fieldType, fieldValue)
+
+  private def isJObjectType(fieldType: TsvToJsonConverter): Boolean =
+    fieldType == CustomContextsField || fieldType == DerivedContextsField || fieldType == UnstructField
+
+  private def stringToJObjectConverter(fieldType: TsvToJsonConverter, fieldValue: String): JValue = {
+    if(fieldValue.isEmpty) JNothing
+    else if(isJObjectType(fieldType)) parse(fieldValue)
+    else throw new IllegalArgumentException(s"Unknown type: $fieldType")
+  }
+
+  private def stringToScalarJValueConverter(fieldType: TsvToJsonConverter, fieldValue: String): JValue = {
+    if (fieldValue.isEmpty) JNull
+    else fieldType match {
+      case c: TsvToJsonConverter if c == StringField                    =>  JString(fieldValue)
+      case c: TsvToJsonConverter if c == IntField                       =>  JInt(fieldValue.toInt)
+      case c: TsvToJsonConverter if c == DoubleField                    =>  JDouble(fieldValue.toDouble)
+      case c: TsvToJsonConverter if c == TstampField                    =>  JString(reformatTstamp(fieldValue))
+      case c: TsvToJsonConverter if c == BoolField && fieldValue == "1" => JBool(true)
+      case c: TsvToJsonConverter if c == BoolField && fieldValue == "0" =>  JBool(false)
+      case c: TsvToJsonConverter if c == BoolField                      =>  throw new BooleanFormatException(s"Invalid boolean value: $fieldValue")
+      case _ =>  throw new IllegalArgumentException(s"Unknown type: $fieldType")
+    }
+  }
+
+  private def isRightSize(event: Array[String]): Boolean =
+    event.length != Fields.size
 
   private val StringField: TsvToJsonConverter          = (key, value) => Right(PrimitiveOutput(key, JString(value)))
   private val IntField: TsvToJsonConverter             = (key, value) => Right(PrimitiveOutput(key, JInt(value.toInt)))
@@ -95,139 +171,139 @@ object EventTransformer {
   private val UnstructField: TsvToJsonConverter        = (_, value)   => JsonShredder.parseUnstruct(value)
 
   private val Fields = List(
-    "app_id" -> StringField,
-    "platform" -> StringField,
-    "etl_tstamp" -> TstampField,
-    "collector_tstamp" -> TstampField,
-    "dvce_created_tstamp" -> TstampField,
-    "event" -> StringField,
-    "event_id" -> StringField,
-    "txn_id" -> IntField,
-    "name_tracker" -> StringField,
-    "v_tracker" -> StringField,
-    "v_collector" -> StringField,
-    "v_etl" -> StringField,
-    "user_id" -> StringField,
-    "user_ipaddress" -> StringField,
-    "user_fingerprint" -> StringField,
-    "domain_userid" -> StringField,
-    "domain_sessionidx" -> IntField,
-    "network_userid" -> StringField,
-    "geo_country" -> StringField,
-    "geo_region" -> StringField,
-    "geo_city" -> StringField,
-    "geo_zipcode" -> StringField,
-    "geo_latitude" -> DoubleField,
-    "geo_longitude" -> DoubleField,
-    "geo_region_name" -> StringField,
-    "ip_isp" -> StringField,
-    "ip_organization" -> StringField,
-    "ip_domain" -> StringField,
-    "ip_netspeed" -> StringField,
-    "page_url" -> StringField,
-    "page_title" -> StringField,
-    "page_referrer" -> StringField,
-    "page_urlscheme" -> StringField,
-    "page_urlhost" -> StringField,
-    "page_urlport" -> IntField,
-    "page_urlpath" -> StringField,
-    "page_urlquery" -> StringField,
-    "page_urlfragment" -> StringField,
-    "refr_urlscheme" -> StringField,
-    "refr_urlhost" -> StringField,
-    "refr_urlport" -> IntField,
-    "refr_urlpath" -> StringField,
-    "refr_urlquery" -> StringField,
-    "refr_urlfragment" -> StringField,
-    "refr_medium" -> StringField,
-    "refr_source" -> StringField,
-    "refr_term" -> StringField,
-    "mkt_medium" -> StringField,
-    "mkt_source" -> StringField,
-    "mkt_term" -> StringField,
-    "mkt_content" -> StringField,
-    "mkt_campaign" -> StringField,
-    "contexts" -> CustomContextsField,
-    "se_category" -> StringField,
-    "se_action" -> StringField,
-    "se_label" -> StringField,
-    "se_property" -> StringField,
-    "se_value" -> DoubleField,
-    "unstruct_event" -> UnstructField,
-    "tr_orderid" -> StringField,
-    "tr_affiliation" -> StringField,
-    "tr_total" -> DoubleField,
-    "tr_tax" -> DoubleField,
-    "tr_shipping" -> DoubleField,
-    "tr_city" -> StringField,
-    "tr_state" -> StringField,
-    "tr_country" -> StringField,
-    "ti_orderid" -> StringField,
-    "ti_sku" -> StringField,
-    "ti_name" -> StringField,
-    "ti_category" -> StringField,
-    "ti_price" -> DoubleField,
-    "ti_quantity" -> IntField,
-    "pp_xoffset_min" -> IntField,
-    "pp_xoffset_max" -> IntField,
-    "pp_yoffset_min" -> IntField,
-    "pp_yoffset_max" -> IntField,
-    "useragent" -> StringField,
-    "br_name" -> StringField,
-    "br_family" -> StringField,
-    "br_version" -> StringField,
-    "br_type" -> StringField,
-    "br_renderengine" -> StringField,
-    "br_lang" -> StringField,
-    "br_features_pdf" -> BoolField,
-    "br_features_flash" -> BoolField,
-    "br_features_java" -> BoolField,
-    "br_features_director" -> BoolField,
-    "br_features_quicktime" -> BoolField,
-    "br_features_realplayer" -> BoolField,
+    "app_id"                   -> StringField,
+    "platform"                 -> StringField,
+    "etl_tstamp"               -> TstampField,
+    "collector_tstamp"         -> TstampField,
+    "dvce_created_tstamp"      -> TstampField,
+    "event"                    -> StringField,
+    "event_id"                 -> StringField,
+    "txn_id"                   -> IntField,
+    "name_tracker"             -> StringField,
+    "v_tracker"                -> StringField,
+    "v_collector"              -> StringField,
+    "v_etl"                    -> StringField,
+    "user_id"                  -> StringField,
+    "user_ipaddress"           -> StringField,
+    "user_fingerprint"         -> StringField,
+    "domain_userid"            -> StringField,
+    "domain_sessionidx"        -> IntField,
+    "network_userid"           -> StringField,
+    "geo_country"              -> StringField,
+    "geo_region"               -> StringField,
+    "geo_city"                 -> StringField,
+    "geo_zipcode"              -> StringField,
+    "geo_latitude"             -> DoubleField,
+    "geo_longitude"            -> DoubleField,
+    "geo_region_name"          -> StringField,
+    "ip_isp"                   -> StringField,
+    "ip_organization"          -> StringField,
+    "ip_domain"                -> StringField,
+    "ip_netspeed"              -> StringField,
+    "page_url"                 -> StringField,
+    "page_title"               -> StringField,
+    "page_referrer"            -> StringField,
+    "page_urlscheme"           -> StringField,
+    "page_urlhost"             -> StringField,
+    "page_urlport"             -> IntField,
+    "page_urlpath"             -> StringField,
+    "page_urlquery"            -> StringField,
+    "page_urlfragment"         -> StringField,
+    "refr_urlscheme"           -> StringField,
+    "refr_urlhost"             -> StringField,
+    "refr_urlport"             -> IntField,
+    "refr_urlpath"             -> StringField,
+    "refr_urlquery"            -> StringField,
+    "refr_urlfragment"         -> StringField,
+    "refr_medium"              -> StringField,
+    "refr_source"              -> StringField,
+    "refr_term"                -> StringField,
+    "mkt_medium"               -> StringField,
+    "mkt_source"               -> StringField,
+    "mkt_term"                 -> StringField,
+    "mkt_content"              -> StringField,
+    "mkt_campaign"             -> StringField,
+    "contexts"                 -> CustomContextsField,
+    "se_category"              -> StringField,
+    "se_action"                -> StringField,
+    "se_label"                 -> StringField,
+    "se_property"              -> StringField,
+    "se_value"                 -> DoubleField,
+    "unstruct_event"           -> UnstructField,
+    "tr_orderid"               -> StringField,
+    "tr_affiliation"           -> StringField,
+    "tr_total"                 -> DoubleField,
+    "tr_tax"                   -> DoubleField,
+    "tr_shipping"              -> DoubleField,
+    "tr_city"                  -> StringField,
+    "tr_state"                 -> StringField,
+    "tr_country"               -> StringField,
+    "ti_orderid"               -> StringField,
+    "ti_sku"                   -> StringField,
+    "ti_name"                  -> StringField,
+    "ti_category"              -> StringField,
+    "ti_price"                 -> DoubleField,
+    "ti_quantity"              -> IntField,
+    "pp_xoffset_min"           -> IntField,
+    "pp_xoffset_max"           -> IntField,
+    "pp_yoffset_min"           -> IntField,
+    "pp_yoffset_max"           -> IntField,
+    "useragent"                -> StringField,
+    "br_name"                  -> StringField,
+    "br_family"                -> StringField,
+    "br_version"               -> StringField,
+    "br_type"                  -> StringField,
+    "br_renderengine"          -> StringField,
+    "br_lang"                  -> StringField,
+    "br_features_pdf"          -> BoolField,
+    "br_features_flash"        -> BoolField,
+    "br_features_java"         -> BoolField,
+    "br_features_director"     -> BoolField,
+    "br_features_quicktime"    -> BoolField,
+    "br_features_realplayer"   -> BoolField,
     "br_features_windowsmedia" -> BoolField,
-    "br_features_gears" -> BoolField,
-    "br_features_silverlight" -> BoolField,
-    "br_cookies" -> BoolField,
-    "br_colordepth" -> StringField,
-    "br_viewwidth" -> IntField,
-    "br_viewheight" -> IntField,
-    "os_name" -> StringField,
-    "os_family" -> StringField,
-    "os_manufacturer" -> StringField,
-    "os_timezone" -> StringField,
-    "dvce_type" -> StringField,
-    "dvce_ismobile" -> BoolField,
-    "dvce_screenwidth" -> IntField,
-    "dvce_screenheight" -> IntField,
-    "doc_charset" -> StringField,
-    "doc_width" -> IntField,
-    "doc_height" -> IntField,
-    "tr_currency" -> StringField,
-    "tr_total_base" -> DoubleField,
-    "tr_tax_base" -> DoubleField,
-    "tr_shipping_base" -> DoubleField,
-    "ti_currency" -> StringField,
-    "ti_price_base" -> DoubleField,
-    "base_currency" -> StringField,
-    "geo_timezone" -> StringField,
-    "mkt_clickid" -> StringField,
-    "mkt_network" -> StringField,
-    "etl_tags" -> StringField,
-    "dvce_sent_tstamp" -> TstampField,
-    "refr_domain_userid" -> StringField,
-    "refr_device_tstamp" -> TstampField,
-    "derived_contexts" -> DerivedContextsField,
-    "domain_sessionid" -> StringField,
-    "derived_tstamp" -> TstampField,
-    "event_vendor" -> StringField,
-    "event_name" -> StringField,
-    "event_format" -> StringField,
-    "event_version" -> StringField,
-    "event_fingerprint" -> StringField,
-    "true_tstamp" -> TstampField
+    "br_features_gears"        -> BoolField,
+    "br_features_silverlight"  -> BoolField,
+    "br_cookies"               -> BoolField,
+    "br_colordepth"            -> StringField,
+    "br_viewwidth"             -> IntField,
+    "br_viewheight"            -> IntField,
+    "os_name"                  -> StringField,
+    "os_family"                -> StringField,
+    "os_manufacturer"          -> StringField,
+    "os_timezone"              -> StringField,
+    "dvce_type"                -> StringField,
+    "dvce_ismobile"            -> BoolField,
+    "dvce_screenwidth"         -> IntField,
+    "dvce_screenheight"        -> IntField,
+    "doc_charset"              -> StringField,
+    "doc_width"                -> IntField,
+    "doc_height"               -> IntField,
+    "tr_currency"              -> StringField,
+    "tr_total_base"            -> DoubleField,
+    "tr_tax_base"              -> DoubleField,
+    "tr_shipping_base"         -> DoubleField,
+    "ti_currency"              -> StringField,
+    "ti_price_base"            -> DoubleField,
+    "base_currency"            -> StringField,
+    "geo_timezone"             -> StringField,
+    "mkt_clickid"              -> StringField,
+    "mkt_network"              -> StringField,
+    "etl_tags"                 -> StringField,
+    "dvce_sent_tstamp"         -> TstampField,
+    "refr_domain_userid"       -> StringField,
+    "refr_device_tstamp"       -> TstampField,
+    "derived_contexts"         -> DerivedContextsField,
+    "domain_sessionid"         -> StringField,
+    "derived_tstamp"           -> TstampField,
+    "event_vendor"             -> StringField,
+    "event_name"               -> StringField,
+    "event_format"             -> StringField,
+    "event_version"            -> StringField,
+    "event_fingerprint"        -> StringField,
+    "true_tstamp"              -> TstampField
   )
-
+  
   private object GeopointIndexes {
     val latitude = 22
     val longitude = 23
