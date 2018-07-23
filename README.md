@@ -1,7 +1,7 @@
 # Snowplow Scala Analytics SDK
 
 [![Build Status][travis-image]][travis]
-[![Release][release-image]][releases] 
+[![Release][release-image]][releases]
 [![License][license-image]][license]
 
 ## Overview
@@ -10,11 +10,9 @@ The **[Snowplow][snowplow]** Analytics SDK for Scala lets you work with **[Snowp
 
 Use this SDK with **[Apache Spark][spark]**, **[AWS Lambda][lambda]**, **[Apache Flink][flink]**, **[Scalding][scalding]**, **[Apache Samza][samza]** and other Scala/JVM-compatible data processing frameworks.
 
-
 ## Documentation
 
-[Setup guide][setup-guide] and [User guide][user-guide] are avaiable at [Snowplow wiki][snowplow-wiki].
-
+[Setup guide][setup-guide] and [User guide][user-guide] are available at [Snowplow wiki][snowplow-wiki].
 
 ## Copyright and license
 
@@ -29,14 +27,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-
 [travis-image]: https://travis-ci.org/snowplow/snowplow-scala-analytics-sdk.png?branch=master
 [travis]: http://travis-ci.org/snowplow/snowplow-scala-analytics-sdk
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
-[release-image]: http://img.shields.io/badge/release-0.3.0-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-0.3.1-blue.svg?style=flat
 [releases]: https://github.com/snowplow/snowplow-scala-analytics-sdk/releases
 
 [setup-guide]: https://github.com/snowplow/snowplow/wiki/Scala-Analytics-SDK-setup

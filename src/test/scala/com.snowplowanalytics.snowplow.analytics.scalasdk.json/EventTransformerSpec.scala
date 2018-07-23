@@ -1286,7 +1286,331 @@ class EventTransformerSpec extends Specification {
     }
   }
 
-  "The 'foldContects' function" should {
+  "The 'getValidatedJsonEvent' method" should {
+    "successfully return the original event when called with flatten false" in {
+
+      val latitude = "37.443604"
+      val longitude = "-122.4124"
+      val input = List(
+        "app_id" -> "angry-birds",
+        "platform" -> "web",
+        "etl_tstamp" -> "2017-01-26 00:01:25.292",
+        "collector_tstamp" -> "2013-11-26 00:02:05",
+        "dvce_created_tstamp" -> "2013-11-26 00:03:57.885",
+        "event" -> "page_view",
+        "event_id" -> "c6ef3124-b53a-4b13-a233-0088f79dcbcb",
+        "txn_id" -> "41828",
+        "name_tracker" -> "cloudfront-1",
+        "v_tracker" -> "js-2.1.0",
+        "v_collector" -> "clj-tomcat-0.1.0",
+        "v_etl" -> "serde-0.5.2",
+        "user_id" -> "jon.doe@email.com",
+        "user_ipaddress" -> "92.231.54.234",
+        "user_fingerprint" -> "2161814971",
+        "domain_userid" -> "bc2e92ec6c204a14",
+        "domain_sessionidx" -> "3",
+        "network_userid" -> "ecdff4d0-9175-40ac-a8bb-325c49733607",
+        "geo_country" -> "US",
+        "geo_region" -> "TX",
+        "geo_city" -> "New York",
+        "geo_zipcode" -> "94109",
+        "geo_latitude" -> latitude,
+        "geo_longitude" -> longitude,
+        "geo_region_name" -> "Florida",
+        "ip_isp" -> "FDN Communications",
+        "ip_organization" -> "Bouygues Telecom",
+        "ip_domain" -> "nuvox.net",
+        "ip_netspeed" -> "Cable/DSL",
+        "page_url" -> "http://www.snowplowanalytics.com",
+        "page_title" -> "On Analytics",
+        "page_referrer" -> "",
+        "page_urlscheme" -> "http",
+        "page_urlhost" -> "www.snowplowanalytics.com",
+        "page_urlport" -> "80",
+        "page_urlpath" -> "/product/index.html",
+        "page_urlquery" -> "id=GTM-DLRG",
+        "page_urlfragment" -> "4-conclusion",
+        "refr_urlscheme" -> "",
+        "refr_urlhost" -> "",
+        "refr_urlport" -> "",
+        "refr_urlpath" -> "",
+        "refr_urlquery" -> "",
+        "refr_urlfragment" -> "",
+        "refr_medium" -> "",
+        "refr_source" -> "",
+        "refr_term" -> "",
+        "mkt_medium" -> "",
+        "mkt_source" -> "",
+        "mkt_term" -> "",
+        "mkt_content" -> "",
+        "mkt_campaign" -> "",
+        "contexts" -> contextsWithDuplicate,
+        "se_category" -> "",
+        "se_action" -> "",
+        "se_label" -> "",
+        "se_property" -> "",
+        "se_value" -> "",
+        "unstruct_event" -> unstructJson,
+        "tr_orderid" -> "",
+        "tr_affiliation" -> "",
+        "tr_total" -> "",
+        "tr_tax" -> "",
+        "tr_shipping" -> "",
+        "tr_city" -> "",
+        "tr_state" -> "",
+        "tr_country" -> "",
+        "ti_orderid" -> "",
+        "ti_sku" -> "",
+        "ti_name" -> "",
+        "ti_category" -> "",
+        "ti_price" -> "",
+        "ti_quantity" -> "",
+        "pp_xoffset_min" -> "",
+        "pp_xoffset_max" -> "",
+        "pp_yoffset_min" -> "",
+        "pp_yoffset_max" -> "",
+        "useragent" -> "",
+        "br_name" -> "",
+        "br_family" -> "",
+        "br_version" -> "",
+        "br_type" -> "",
+        "br_renderengine" -> "",
+        "br_lang" -> "",
+        "br_features_pdf" -> "1",
+        "br_features_flash" -> "0",
+        "br_features_java" -> "",
+        "br_features_director" -> "",
+        "br_features_quicktime" -> "",
+        "br_features_realplayer" -> "",
+        "br_features_windowsmedia" -> "",
+        "br_features_gears" -> "",
+        "br_features_silverlight" -> "",
+        "br_cookies" -> "",
+        "br_colordepth" -> "",
+        "br_viewwidth" -> "",
+        "br_viewheight" -> "",
+        "os_name" -> "",
+        "os_family" -> "",
+        "os_manufacturer" -> "",
+        "os_timezone" -> "",
+        "dvce_type" -> "",
+        "dvce_ismobile" -> "",
+        "dvce_screenwidth" -> "",
+        "dvce_screenheight" -> "",
+        "doc_charset" -> "",
+        "doc_width" -> "",
+        "doc_height" -> "",
+        "tr_currency" -> "",
+        "tr_total_base" -> "",
+        "tr_tax_base" -> "",
+        "tr_shipping_base" -> "",
+        "ti_currency" -> "",
+        "ti_price_base" -> "",
+        "base_currency" -> "",
+        "geo_timezone" -> "",
+        "mkt_clickid" -> "",
+        "mkt_network" -> "",
+        "etl_tags" -> "",
+        "dvce_sent_tstamp" -> "",
+        "refr_domain_userid" -> "",
+        "refr_device_tstamp" -> "",
+        "derived_contexts" -> derivedContextsJson,
+        "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
+        "derived_tstamp" -> "2013-11-26 00:03:57.886",
+        "event_vendor" -> "com.snowplowanalytics.snowplow",
+        "event_name" -> "link_click",
+        "event_format" -> "jsonschema",
+        "event_version" -> "1-0-0",
+        "event_fingerprint" -> "e3dbfa9cca0412c3d4052863cefb547f",
+        "true_tstamp" -> "2013-11-26 00:03:57.886"
+      )
+
+      val (_, json) = EventTransformer
+        .getValidatedJsonEvent(input.map(_._2).toArray, false)
+        .right
+        .toOption
+        .getOrElse(throw new RuntimeException("Event failed transformation"))
+
+      val expectedContexts = parse(contextsWithDuplicate)
+
+      val contexts = json \ "contexts"
+      val contextsWithName = contexts aka "contexts"
+      contextsWithName should haveClass[JObject]
+      contextsWithName should be equalTo(expectedContexts)
+
+      val derivedContexts = json \ "derived_contexts"
+      val derivedContextsWithName = derivedContexts aka "derived_ontexts"
+      derivedContextsWithName should haveClass[JObject]
+      derivedContextsWithName should be equalTo(parse(derivedContextsJson))
+
+      val unstructEvent = json \ "unstruct_event"
+      val unstructWithName = unstructEvent aka "unstruct_event"
+      unstructWithName should haveClass[JObject]
+      unstructWithName should be equalTo(parse(unstructJson))
+
+      val expectedOutput = input :+ ("geo_location" -> s"$latitude,$longitude")
+      val expectedKeys = expectedOutput.map(_._1)
+      json.values.keys.toSet aka "returned keys" should be equalTo(expectedKeys.toSet)
+
+      implicit val formats = DefaultFormats
+
+      val expectedValues = expectedOutput.sortBy(_._1).map(_._2).map(s => if (s.startsWith("201")) s.replace(" ", "T")+"Z" else s).map(v => if (v == "") null else v)
+      val returnedValues = json.obj.sortBy(_._1).map{ case (_, v: JValue) => v}
+      val stringValues = returnedValues.map(_.extractOpt[String])
+      val stringIndexes = stringValues.zipWithIndex.map { case (o: Option[String], i: Int) => o.map(_ => i)}.flatten
+      val returnedStrings = stringValues.flatten
+      returnedStrings aka "returned values" should be equalTo(stringIndexes.map(expectedValues))
+    }
+
+    "return a list of errors for invalid input" in {
+
+      val latitude = "37.443604"
+      val longitude = "-122.4124"
+      val input = List(
+        "app_id" -> "angry-birds",
+        "platform" -> "web",
+        "etl_tstamp" -> "2017-01-26 00:01:25.292",
+        "collector_tstamp" -> "2013-11-26 00:02:05",
+        "dvce_created_tstamp" -> "2013-11-26 00:03:57.885",
+        "event" -> "page_view",
+        "event_id" -> "c6ef3124-b53a-4b13-a233-0088f79dcbcb",
+        "txn_id" -> "41828",
+        "name_tracker" -> "cloudfront-1",
+        "v_tracker" -> "js-2.1.0",
+        "v_collector" -> "clj-tomcat-0.1.0",
+        "v_etl" -> "serde-0.5.2",
+        "user_id" -> "jon.doe@email.com",
+        "user_ipaddress" -> "92.231.54.234",
+        "user_fingerprint" -> "2161814971",
+        "domain_userid" -> "bc2e92ec6c204a14",
+        "domain_sessionidx" -> "3a",
+        "network_userid" -> "ecdff4d0-9175-40ac-a8bb-325c49733607",
+        "geo_country" -> "US",
+        "geo_region" -> "TX",
+        "geo_city" -> "New York",
+        "geo_zipcode" -> "94109",
+        "geo_latitude" -> latitude,
+        "geo_longitude" -> longitude,
+        "geo_region_name" -> "Florida",
+        "ip_isp" -> "FDN Communications",
+        "ip_organization" -> "Bouygues Telecom",
+        "ip_domain" -> "nuvox.net",
+        "ip_netspeed" -> "Cable/DSL",
+        "page_url" -> "http://www.snowplowanalytics.com",
+        "page_title" -> "On Analytics",
+        "page_referrer" -> "",
+        "page_urlscheme" -> "http",
+        "page_urlhost" -> "www.snowplowanalytics.com",
+        "page_urlport" -> "80",
+        "page_urlpath" -> "/product/index.html",
+        "page_urlquery" -> "id=GTM-DLRG",
+        "page_urlfragment" -> "4-conclusion",
+        "refr_urlscheme" -> "",
+        "refr_urlhost" -> "",
+        "refr_urlport" -> "",
+        "refr_urlpath" -> "",
+        "refr_urlquery" -> "",
+        "refr_urlfragment" -> "",
+        "refr_medium" -> "",
+        "refr_source" -> "",
+        "refr_term" -> "",
+        "mkt_medium" -> "",
+        "mkt_source" -> "",
+        "mkt_term" -> "",
+        "mkt_content" -> "",
+        "mkt_campaign" -> "",
+        "contexts" -> contextsWithDuplicate,
+        "se_category" -> "",
+        "se_action" -> "",
+        "se_label" -> "",
+        "se_property" -> "",
+        "se_value" -> "",
+        "unstruct_event" -> unstructJson,
+        "tr_orderid" -> "",
+        "tr_affiliation" -> "",
+        "tr_total" -> "",
+        "tr_tax" -> "",
+        "tr_shipping" -> "",
+        "tr_city" -> "",
+        "tr_state" -> "",
+        "tr_country" -> "",
+        "ti_orderid" -> "",
+        "ti_sku" -> "",
+        "ti_name" -> "",
+        "ti_category" -> "",
+        "ti_price" -> "",
+        "ti_quantity" -> "",
+        "pp_xoffset_min" -> "",
+        "pp_xoffset_max" -> "",
+        "pp_yoffset_min" -> "",
+        "pp_yoffset_max" -> "",
+        "useragent" -> "",
+        "br_name" -> "",
+        "br_family" -> "",
+        "br_version" -> "",
+        "br_type" -> "",
+        "br_renderengine" -> "",
+        "br_lang" -> "",
+        "br_features_pdf" -> "1",
+        "br_features_flash" -> "0",
+        "br_features_java" -> "2",
+        "br_features_director" -> "",
+        "br_features_quicktime" -> "",
+        "br_features_realplayer" -> "",
+        "br_features_windowsmedia" -> "",
+        "br_features_gears" -> "",
+        "br_features_silverlight" -> "",
+        "br_cookies" -> "",
+        "br_colordepth" -> "",
+        "br_viewwidth" -> "",
+        "br_viewheight" -> "",
+        "os_name" -> "",
+        "os_family" -> "",
+        "os_manufacturer" -> "",
+        "os_timezone" -> "",
+        "dvce_type" -> "",
+        "dvce_ismobile" -> "",
+        "dvce_screenwidth" -> "",
+        "dvce_screenheight" -> "",
+        "doc_charset" -> "",
+        "doc_width" -> "",
+        "doc_height" -> "",
+        "tr_currency" -> "",
+        "tr_total_base" -> "",
+        "tr_tax_base" -> "",
+        "tr_shipping_base" -> "",
+        "ti_currency" -> "",
+        "ti_price_base" -> "",
+        "base_currency" -> "",
+        "geo_timezone" -> "",
+        "mkt_clickid" -> "",
+        "mkt_network" -> "",
+        "etl_tags" -> "",
+        "dvce_sent_tstamp" -> "",
+        "refr_domain_userid" -> "",
+        "refr_device_tstamp" -> "",
+        "derived_contexts" -> derivedContextsJson,
+        "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
+        "derived_tstamp" -> "2013-11-26 00:03:57.886",
+        "event_vendor" -> "com.snowplowanalytics.snowplow",
+        "event_name" -> "link_click",
+        "event_format" -> "jsonschema",
+        "event_version" -> "1-0-0",
+        "event_fingerprint" -> "e3dbfa9cca0412c3d4052863cefb547f",
+        "true_tstamp" -> "2013-11-26 00:03:57.886"
+      )
+
+      val errorList = EventTransformer
+        .getValidatedJsonEvent(input.map(_._2).toArray, false)
+        .left
+        .toOption
+          .getOrElse(throw new RuntimeException("Error validating event"))
+
+      errorList should be equalTo(List("java.lang.NumberFormatException: For input string: \"3a\"", "com.snowplowanalytics.snowplow.analytics.scalasdk.json.BooleanFormatException: Invalid boolean value: 2"))
+    }
+  }
+
+  "The 'foldContexts' function" should {
     "successfully merge three contexts" in {
       val input = parse(
         """
