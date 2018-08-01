@@ -31,7 +31,7 @@ import Data._
 class EventTransformerSpec extends Specification {
 
   val unstructJson = """{
-    "schema": "iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0",
+    "schema": "iglu:com.snowplowanalytics.snowplow/unstruct_event/jsonschema/1-0-0",
     "data": {
       "schema": "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1",
       "data": {
