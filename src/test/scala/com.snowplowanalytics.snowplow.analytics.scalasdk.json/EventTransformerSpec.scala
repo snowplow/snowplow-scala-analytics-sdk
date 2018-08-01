@@ -470,7 +470,6 @@ class EventTransformerSpec extends Specification {
         "true_tstamp": "2013-11-26T00:03:57.886Z"
       }""")
 
-
       val eventValues = input.unzip._2.mkString("\t")
 
       val jsonStr = EventTransformer
@@ -1425,7 +1424,7 @@ class EventTransformerSpec extends Specification {
         "true_tstamp" -> "2013-11-26 00:03:57.886"
       )
 
-      val (_, json) = EventTransformer
+      val (inventory, json) = EventTransformer
         .getValidatedJsonEvent(input.map(_._2).toArray, false)
         .right
         .toOption
@@ -1433,10 +1432,18 @@ class EventTransformerSpec extends Specification {
 
       val expectedContexts = parse(contextsWithDuplicate)
 
+      inventory mustEqual Set(
+        InventoryItem(Contexts(CustomContexts), "iglu:org.schema/WebPage/jsonschema/1-0-0"),
+        InventoryItem(UnstructEvent, "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1"),
+        InventoryItem(Contexts(DerivedContexts), "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0"),
+        InventoryItem(Contexts(CustomContexts),"iglu:org.acme/context_one/jsonschema/1-0-1"),
+        InventoryItem(Contexts(CustomContexts),"iglu:org.acme/context_one/jsonschema/1-0-0")
+      )
+
       val contexts = json \ "contexts"
       val contextsWithName = contexts aka "contexts"
       contextsWithName should haveClass[JObject]
-      contextsWithName should be equalTo(expectedContexts)
+      contextsWithName should be equalTo expectedContexts
 
       val derivedContexts = json \ "derived_contexts"
       val derivedContextsWithName = derivedContexts aka "derived_ontexts"

@@ -25,6 +25,8 @@ import org.json4s.JsonDSL._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
+import scala.util.parsing.json.JSONObject
+
 // Jackson
 import com.fasterxml.jackson.core.JsonParseException
 
@@ -104,7 +106,40 @@ object EventTransformer {
   private def getJObjectWithNestedStructures(event: Array[String]): Validated[(Set[InventoryItem], JObject)] = {
     for {
       jObject <- convertTsvEventToNestedJObject(event)
-    } yield (Set.empty[InventoryItem], getGeoLocationField(event) ~ jObject)
+    } yield (getInventory(jObject).toSet, getGeoLocationField(event) ~ jObject)
+  }
+
+  /** Extract inventory from non-flatten JSON */
+  private def getInventory(nonFlattenJson: JObject) = {
+    def getSchema(json: JValue): Option[IgluUri] =
+      json match {
+        case JObject(fields) =>
+          fields.toMap.get("schema") match {
+            case Some(JString(schema)) => Some(schema)
+            case _ => None
+          }
+        case _ => None
+      }
+
+    val map = nonFlattenJson.obj.toMap
+
+    def getContexts(ctxType: ShredProperty): List[InventoryItem] = {
+      (for {
+        JObject(fields) <- map.get(ctxType.name)
+        JArray(contexts) <- fields.toMap.get("data")
+        schemas = contexts.flatMap(ctx => getSchema(ctx).map(uri => InventoryItem(ctxType, uri)))
+      } yield schemas).getOrElse(List.empty)
+    }
+
+    val unstructEvent = for {
+      JObject(fields) <- map.get(UnstructEvent.name)
+      event <- fields.toMap.get("data")
+      schema <- getSchema(event)
+    } yield InventoryItem(UnstructEvent, schema)
+    val customContexts = getContexts(Contexts(CustomContexts))
+    val derivedContexts = getContexts(Contexts(DerivedContexts))
+
+    customContexts ++ derivedContexts ++ unstructEvent.toList
   }
 
   /**
@@ -118,7 +153,7 @@ object EventTransformer {
       case ((fieldName, fieldType), fieldValue) => fieldParser(fieldName, fieldValue, fieldType)
     }
     validJObjects.partition(_.isLeft) match {
-      case (errors, _) if (errors.nonEmpty) => Left(for (Left(error) <- errors) yield error)
+      case (errors, _) if errors.nonEmpty => Left(for (Left(error) <- errors) yield error)
       case (_, kvs) => Right(JObject(for (Right(kv) <- kvs) yield kv))
     }
   }
@@ -367,7 +402,8 @@ object EventTransformer {
     val initialPair = (Set.empty[InventoryItem], initial)
 
     val result = Fields.zip(eventTsv).map(x => converter(x)).traverseEitherL.map { kvPairsList =>
-      kvPairsList.fold(initialPair) { case ((accumInventory, accumObject), (inventory, kvPair)) => (accumInventory ++ inventory, kvPair ~ accumObject)}
+      kvPairsList.fold(initialPair) { case ((accumInventory, accumObject), (inventory, kvPair)) =>
+        (accumInventory ++ inventory, kvPair ~ accumObject)}
     }
 
     result.map { case (inventory, json) => (inventory, foldContexts(json)) }
