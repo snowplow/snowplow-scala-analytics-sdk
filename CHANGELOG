@@ -1,3 +1,8 @@
+Version 0.3.1 (2018-08-01)
+--------------------------
+Fix specification assuming unstruct_event field contains contexts envelope (#57)
+Fix non-flattening algorithm not returning inventory items (#58)
+
 Version 0.3.1 (2018-07-24)
 --------------------------
 Add option to not flatten self-describing fields (#56)
