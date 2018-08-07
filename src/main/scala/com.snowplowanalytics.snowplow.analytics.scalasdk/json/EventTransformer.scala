@@ -25,8 +25,6 @@ import org.json4s.JsonDSL._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
-import scala.util.parsing.json.JSONObject
-
 // Jackson
 import com.fasterxml.jackson.core.JsonParseException
 
