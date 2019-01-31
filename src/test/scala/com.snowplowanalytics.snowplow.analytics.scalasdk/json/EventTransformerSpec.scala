@@ -1115,10 +1115,10 @@ class EventTransformerSpec extends Specification {
       val resultJson = parse(eventWithInventory.event)
 
       val inventoryExpectation = eventWithInventory.inventory mustEqual(Set(
-        InventoryItem(Contexts(CustomContexts), "iglu:org.schema/WebPage/jsonschema/1-0-0"),
-        InventoryItem(Contexts(CustomContexts), "iglu:org.w3/PerformanceTiming/jsonschema/1-0-0"),
-        InventoryItem(UnstructEvent, "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1"),
-        InventoryItem(Contexts(DerivedContexts), "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0")
+        InventoryItemOld(Contexts(CustomContexts), "iglu:org.schema/WebPage/jsonschema/1-0-0"),
+        InventoryItemOld(Contexts(CustomContexts), "iglu:org.w3/PerformanceTiming/jsonschema/1-0-0"),
+        InventoryItemOld(UnstructEvent, "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1"),
+        InventoryItemOld(Contexts(DerivedContexts), "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0")
       ))
 
       val diffExpectation = (resultJson diff expected) mustEqual Diff(JNothing, JNothing, JNothing)
@@ -1433,11 +1433,11 @@ class EventTransformerSpec extends Specification {
       val expectedContexts = parse(contextsWithDuplicate)
 
       inventory mustEqual Set(
-        InventoryItem(Contexts(CustomContexts), "iglu:org.schema/WebPage/jsonschema/1-0-0"),
-        InventoryItem(UnstructEvent, "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1"),
-        InventoryItem(Contexts(DerivedContexts), "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0"),
-        InventoryItem(Contexts(CustomContexts),"iglu:org.acme/context_one/jsonschema/1-0-1"),
-        InventoryItem(Contexts(CustomContexts),"iglu:org.acme/context_one/jsonschema/1-0-0")
+        InventoryItemOld(Contexts(CustomContexts), "iglu:org.schema/WebPage/jsonschema/1-0-0"),
+        InventoryItemOld(UnstructEvent, "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1"),
+        InventoryItemOld(Contexts(DerivedContexts), "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0"),
+        InventoryItemOld(Contexts(CustomContexts),"iglu:org.acme/context_one/jsonschema/1-0-1"),
+        InventoryItemOld(Contexts(CustomContexts),"iglu:org.acme/context_one/jsonschema/1-0-0")
       )
 
       val contexts = json \ "contexts"
