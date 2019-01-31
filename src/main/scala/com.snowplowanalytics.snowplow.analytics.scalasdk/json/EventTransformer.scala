@@ -1,5 +1,5 @@
  /*
- * Copyright (c) 2016-2018 Snowplow Analytics Ltd.
+ * Copyright (c) 2016-2019 Snowplow Analytics Ltd.
  * All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
@@ -66,7 +66,7 @@ object EventTransformer {
    * @param event Array of values for the event
    * @return ValidatedRecord containing JSON for the event and the event_id (if it exists)
    */
-  def jsonifyGoodEvent(event: Array[String]): Validated[(Set[InventoryItem], JObject)] = {
+  def jsonifyGoodEvent(event: Array[String]): Validated[(Set[InventoryItemOld], JObject)] = {
     getValidatedJsonEvent(event, true)
   }
 
@@ -81,7 +81,7 @@ object EventTransformer {
     * @param flatten Whether to flatten the fields in "unstruct_event", "contexts" and "derived_contexts"
     * @return ValidatedRecord containing JSON for the event and the event_id (if it exists)
     */
-  def getValidatedJsonEvent(event: Array[String], flatten: Boolean): Validated[(Set[InventoryItem], JObject)] = {
+  def getValidatedJsonEvent(event: Array[String], flatten: Boolean): Validated[(Set[InventoryItemOld], JObject)] = {
     if (isRightSize(event)) {
       Left(List(s"Expected ${Fields.size} fields, received ${event.length} fields. This may be caused by attempting to use this SDK version on an older (pre-R73) or newer version of Snowplow enriched events."))
     } else {
@@ -101,7 +101,7 @@ object EventTransformer {
     }
   }
 
-  private def getJObjectWithNestedStructures(event: Array[String]): Validated[(Set[InventoryItem], JObject)] = {
+  private def getJObjectWithNestedStructures(event: Array[String]): Validated[(Set[InventoryItemOld], JObject)] = {
     for {
       jObject <- convertTsvEventToNestedJObject(event)
     } yield (getInventory(jObject).toSet, getGeoLocationField(event) ~ jObject)
@@ -121,11 +121,11 @@ object EventTransformer {
 
     val map = nonFlattenJson.obj.toMap
 
-    def getContexts(ctxType: ShredProperty): List[InventoryItem] = {
+    def getContexts(ctxType: ShredProperty): List[InventoryItemOld] = {
       (for {
         JObject(fields) <- map.get(ctxType.name)
         JArray(contexts) <- fields.toMap.get("data")
-        schemas = contexts.flatMap(ctx => getSchema(ctx).map(uri => InventoryItem(ctxType, uri)))
+        schemas = contexts.flatMap(ctx => getSchema(ctx).map(uri => InventoryItemOld(ctxType, uri)))
       } yield schemas).getOrElse(List.empty)
     }
 
@@ -133,7 +133,7 @@ object EventTransformer {
       JObject(fields) <- map.get(UnstructEvent.name)
       event <- fields.toMap.get("data")
       schema <- getSchema(event)
-    } yield InventoryItem(UnstructEvent, schema)
+    } yield InventoryItemOld(UnstructEvent, schema)
     val customContexts = getContexts(Contexts(CustomContexts))
     val derivedContexts = getContexts(Contexts(DerivedContexts))
 
@@ -348,7 +348,7 @@ object EventTransformer {
    * @param fieldInformation ((field name, field-to-JObject conversion function), field value)
    * @return JObject representing a single field in the JSON
    */
-  private def converter(fieldInformation: ((String, TsvToJsonConverter), String)): Validated[(Set[InventoryItem], JObject)] = {
+  private def converter(fieldInformation: ((String, TsvToJsonConverter), String)): Validated[(Set[InventoryItemOld], JObject)] = {
     val ((fieldName, fieldConversionFunction), fieldValue) = fieldInformation
     if (fieldValue.isEmpty) {
       if (fieldName.startsWith("contexts") || fieldName.startsWith("unstruct_event") || fieldName.startsWith("derived_contexts")) {
@@ -396,8 +396,8 @@ object EventTransformer {
    * @param initial initial (probably empty) JSON object
    * @return either aggregated list of converter errors or merged JSON Object
    */
-  private[json] def convertEvent(eventTsv: List[String], initial: JObject): Validated[(Set[InventoryItem], JObject)] = {
-    val initialPair = (Set.empty[InventoryItem], initial)
+  private[json] def convertEvent(eventTsv: List[String], initial: JObject): Validated[(Set[InventoryItemOld], JObject)] = {
+    val initialPair = (Set.empty[InventoryItemOld], initial)
 
     val result = Fields.zip(eventTsv).map(x => converter(x)).traverseEitherL.map { kvPairsList =>
       kvPairsList.fold(initialPair) { case ((accumInventory, accumObject), (inventory, kvPair)) =>
