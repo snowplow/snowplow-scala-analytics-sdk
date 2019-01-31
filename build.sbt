@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -28,6 +28,10 @@ lazy val root = project.in(file("."))
   .settings(
     libraryDependencies ++= Seq(
       // Scala
+      Dependencies.igluCore,
+      Dependencies.circeParser,
+      Dependencies.circeGeneric,
+      Dependencies.circeJava,
       Dependencies.json4sJackson,
       Dependencies.s3,
       Dependencies.dynamodb,

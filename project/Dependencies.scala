@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -15,6 +15,8 @@ import sbt._
 object Dependencies {
 
   object V {
+    val igluCore       = "0.4.0"
+    val circe          = "0.10.1"
     val aws            = "1.11.490"
     val json4s         = "3.2.11"
     // Scala (test only)
@@ -22,6 +24,10 @@ object Dependencies {
     val scalaCheck     = "1.14.0"
   }
 
+  val igluCore         = "com.snowplowanalytics"      %% "iglu-core-circe"      % V.igluCore
+  val circeParser      = "io.circe"                   %% "circe-parser"         % V.circe
+  val circeGeneric     = "io.circe"                   %% "circe-generic"        % V.circe
+  val circeJava        = "io.circe"                   %% "circe-java8"          % V.circe
   val json4sJackson    = "org.json4s"                 %% "json4s-jackson"       % V.json4s
   val s3               = "com.amazonaws"              % "aws-java-sdk-s3"       % V.aws
   val dynamodb         = "com.amazonaws"              % "aws-java-sdk-dynamodb" % V.aws
