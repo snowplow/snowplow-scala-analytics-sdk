@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -13,6 +13,7 @@
 package com.snowplowanalytics.snowplow.analytics.scalasdk.json
 
 // Json4s
+import com.snowplowanalytics.iglu.core.SchemaKey
 import org.json4s._
 
 /**
@@ -67,7 +68,9 @@ object Data {
    * @param shredProperty type of shred property
    * @param igluUri valid Iglu URI of shred property
    */
-  case class InventoryItem(shredProperty: ShredProperty, igluUri: IgluUri)
+  case class InventoryItemOld(shredProperty: ShredProperty, igluUri: IgluUri)
+
+  case class ShreddedType(shredProperty: ShredProperty, schemaKey: SchemaKey)
 
   /**
    * The event as a shredded stringified JSON along with it's inventory
@@ -76,7 +79,7 @@ object Data {
    * @param event stringified event JSON
    * @param inventory set of JSON fields (contexts, unsturct event)
    */
-  case class EventWithInventory(event: String, inventory: Set[InventoryItem])
+  case class EventWithInventory(event: String, inventory: Set[InventoryItemOld])
 
 
   /**
@@ -127,12 +130,12 @@ object Data {
     /**
      * Get JSON object along with inventory
      */
-    def jsonAndInventory: (Set[InventoryItem], JObject) = (getInventory, getJson)
+    def jsonAndInventory: (Set[InventoryItemOld], JObject) = (getInventory, getJson)
 
     /**
      * Get set of contained JSON Schema URIs
      */
-    def getInventory: Set[InventoryItem]
+    def getInventory: Set[InventoryItemOld]
 
     /**
      * Get ready-to-output JSON
@@ -148,7 +151,7 @@ object Data {
    */
   private[scalasdk] case class ContextsOutput(contextsType: ContextsType, contextMap: Map[IgluUri, List[JValue]]) extends TsvConverterOutput {
     def getInventory =
-      contextMap.keySet.map { uri => InventoryItem(Contexts(contextsType), uri) }
+      contextMap.keySet.map { uri => InventoryItemOld(Contexts(contextsType), uri) }
 
     def getJson =
       JObject(contextMap.toList.map { case (key, list) => (fixSchema(Contexts(contextsType), key), JArray(list)) })
@@ -162,7 +165,7 @@ object Data {
    */
   case class UnstructEventOutput(igluUri: IgluUri, value: JValue) extends TsvConverterOutput {
     def getInventory =
-      Set(InventoryItem(UnstructEvent, igluUri))
+      Set(InventoryItemOld(UnstructEvent, igluUri))
 
     def getJson =
       JObject(fixSchema(UnstructEvent, igluUri) -> value)
@@ -177,7 +180,7 @@ object Data {
    */
   private[scalasdk]  case class PrimitiveOutput(key: String, value: JValue) extends TsvConverterOutput {
     def getInventory =
-      Set.empty[InventoryItem]
+      Set.empty[InventoryItemOld]
 
     def getJson =
       JObject(key -> value)
