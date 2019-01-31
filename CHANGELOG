@@ -1,3 +1,12 @@
+Version 0.4.0 (2018-02-01)
+--------------------------
+Make EventTransformer API type-safe (#53)
+Bump Scala 2.12 to 2.12.8 (#66)
+Bump scalacheck to 1.14.0 (#65)
+Bump specs2 to 4.4.1 (#64)
+Bump aws-java-sdk to 1.11.490 (#63)
+Drop Scala 2.10 (#59)
+
 Version 0.3.2 (2018-08-24)
 --------------------------
 Fix specification assuming unstruct_event field contains contexts envelope (#57)
