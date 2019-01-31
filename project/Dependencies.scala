@@ -19,7 +19,7 @@ object Dependencies {
     val json4s         = "3.2.11"
     // Scala (test only)
     val specs2         = "4.4.1"
-    val scalaCheck     = "1.13.4"
+    val scalaCheck     = "1.14.0"
   }
 
   val json4sJackson    = "org.json4s"                 %% "json4s-jackson"       % V.json4s
