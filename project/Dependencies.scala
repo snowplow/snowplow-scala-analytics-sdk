@@ -19,10 +19,8 @@ object Dependencies {
     val cats           = "1.6.0"
     val circe          = "0.11.1"
     val aws            = "1.11.490"
-    val json4s         = "3.2.11"
     // Scala (test only)
     val specs2         = "4.4.1"
-    val scalaCheck     = "1.14.0"
   }
 
   val igluCore         = "com.snowplowanalytics"      %% "iglu-core-circe"      % V.igluCore
@@ -30,11 +28,8 @@ object Dependencies {
   val circeParser      = "io.circe"                   %% "circe-parser"         % V.circe
   val circeGeneric     = "io.circe"                   %% "circe-generic"        % V.circe
   val circeJava        = "io.circe"                   %% "circe-java8"          % V.circe
-  val json4sJackson    = "org.json4s"                 %% "json4s-jackson"       % V.json4s
   val s3               = "com.amazonaws"              % "aws-java-sdk-s3"       % V.aws
   val dynamodb         = "com.amazonaws"              % "aws-java-sdk-dynamodb" % V.aws
   // Scala (test only)
   val specs2           = "org.specs2"                 %% "specs2-core"          % V.specs2     % "test"
-  val specs2Scalacheck = "org.specs2"                 %% "specs2-scalacheck"    % V.specs2     % "test"
-  val scalaCheck       = "org.scalacheck"             %% "scalacheck"           % V.scalaCheck % "test"
 }

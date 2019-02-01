@@ -28,7 +28,6 @@ import com.snowplowanalytics.iglu.core.SelfDescribingData
 import com.snowplowanalytics.iglu.core.circe.instances._
 
 // This library
-import com.snowplowanalytics.snowplow.analytics.scalasdk.json.Data
 import com.snowplowanalytics.snowplow.analytics.scalasdk.decode.{Parser, DecodeResult}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent.{Contexts, UnstructEvent}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent._

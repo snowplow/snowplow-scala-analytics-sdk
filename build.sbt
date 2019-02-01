@@ -33,12 +33,9 @@ lazy val root = project.in(file("."))
       Dependencies.circeParser,
       Dependencies.circeGeneric,
       Dependencies.circeJava,
-      Dependencies.json4sJackson,
       Dependencies.s3,
       Dependencies.dynamodb,
       // Scala (test only)
-      Dependencies.scalaCheck,
-      Dependencies.specs2,
-      Dependencies.specs2Scalacheck
+      Dependencies.specs2
     )
   )
