@@ -20,10 +20,6 @@ import io.circe.{Encoder, Json, JsonObject}
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
 import com.snowplowanalytics.iglu.core.{SchemaKey, SelfDescribingData}
 
-// This library
-import com.snowplowanalytics.snowplow.analytics.scalasdk.json.Data
-import com.snowplowanalytics.snowplow.analytics.scalasdk.json.Data.ShredProperty
-
 object SnowplowEvent {
 
   /**
@@ -81,7 +77,7 @@ object SnowplowEvent {
     * @param model         Iglu schema model
     * @return the schema, transformed into an Elasticsearch-compatible column name
     */
-  def transformSchema(shredProperty: ShredProperty, vendor: String, name: String, model: Int): String = {
+  def transformSchema(shredProperty: Data.ShredProperty, vendor: String, name: String, model: Int): String = {
     // Convert dots & dashes in schema vendor to underscore
     val snakeCaseVendor = vendor.replaceAll("""[\.\-]""", "_").toLowerCase
 
@@ -91,5 +87,5 @@ object SnowplowEvent {
     s"${shredProperty.prefix}${snakeCaseVendor}_${snakeCaseName}_$model"
   }
 
-  def transformSchema(shredProperty: ShredProperty, schema: SchemaKey): String = transformSchema(shredProperty, schema.vendor, schema.name, schema.version.model)
+  def transformSchema(shredProperty: Data.ShredProperty, schema: SchemaKey): String = transformSchema(shredProperty, schema.vendor, schema.name, schema.version.model)
 }
