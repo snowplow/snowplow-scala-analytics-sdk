@@ -290,7 +290,7 @@ class EventSpec extends Specification {
         "etl_tags" -> "",
         "dvce_sent_tstamp" -> "",
         "refr_domain_userid" -> "",
-        "refr_device_tstamp" -> "",
+        "refr_dvce_tstamp" -> "",
         "derived_contexts" -> derivedContextsJson,
         "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
         "derived_tstamp" -> "2013-11-26 00:03:57.886",
@@ -489,7 +489,7 @@ class EventSpec extends Specification {
         etl_tags = None,
         dvce_sent_tstamp = None,
         refr_domain_userid = None,
-        refr_device_tstamp = None,
+        refr_dvce_tstamp = None,
         derived_contexts = Contexts(
           List(
             SelfDescribingData(
@@ -690,7 +690,7 @@ class EventSpec extends Specification {
         "etl_tags" : null,
         "dvce_sent_tstamp" : null,
         "refr_domain_userid" : null,
-        "refr_device_tstamp" : null,
+        "refr_dvce_tstamp" : null,
         "contexts_com_snowplowanalytics_snowplow_ua_parser_context_1": [{
           "useragentFamily": "IE",
           "useragentMajor": "7",
@@ -843,7 +843,7 @@ class EventSpec extends Specification {
         "etl_tags" -> "",
         "dvce_sent_tstamp" -> "",
         "refr_domain_userid" -> "",
-        "refr_device_tstamp" -> "",
+        "refr_dvce_tstamp" -> "",
         "derived_contexts" -> "",
         "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
         "derived_tstamp" -> "2013-11-26 00:03:57.886",
@@ -977,7 +977,7 @@ class EventSpec extends Specification {
         etl_tags = None,
         dvce_sent_tstamp = None,
         refr_domain_userid = None,
-        refr_device_tstamp = None,
+        refr_dvce_tstamp = None,
         derived_contexts = Contexts(List()),
         domain_sessionid = Some("2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1"),
         derived_tstamp = Some(Instant.parse("2013-11-26T00:03:57.886Z")),
@@ -1118,7 +1118,7 @@ class EventSpec extends Specification {
         "etl_tags" : null,
         "dvce_sent_tstamp" : null,
         "refr_domain_userid" : null,
-        "refr_device_tstamp" : null,
+        "refr_dvce_tstamp" : null,
         "domain_sessionid": "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
         "derived_tstamp": "2013-11-26T00:03:57.886Z",
         "event_vendor": "com.snowplowanalytics.snowplow",
@@ -1257,7 +1257,7 @@ class EventSpec extends Specification {
         "etl_tags" -> "",
         "dvce_sent_tstamp" -> "",
         "refr_domain_userid" -> "",
-        "refr_device_tstamp" -> "",
+        "refr_dvce_tstamp" -> "",
         "derived_contexts" -> derivedContextsJson,
         "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
         "derived_tstamp" -> "2013-11-26 00:03:57.886",
@@ -1448,7 +1448,7 @@ class EventSpec extends Specification {
         etl_tags = None,
         dvce_sent_tstamp = None,
         refr_domain_userid = None,
-        refr_device_tstamp = None,
+        refr_dvce_tstamp = None,
         derived_contexts = Contexts(
           List(
             SelfDescribingData(
@@ -1635,7 +1635,7 @@ class EventSpec extends Specification {
         "etl_tags" : null,
         "dvce_sent_tstamp" : null,
         "refr_domain_userid" : null,
-        "refr_device_tstamp" : null,
+        "refr_dvce_tstamp" : null,
         "contexts_com_snowplowanalytics_snowplow_ua_parser_context_1": [{
           "useragentFamily": "IE",
           "useragentMajor": "7",
@@ -1787,7 +1787,7 @@ class EventSpec extends Specification {
         "etl_tags" -> "",
         "dvce_sent_tstamp" -> "",
         "refr_domain_userid" -> "",
-        "refr_device_tstamp" -> "",
+        "refr_dvce_tstamp" -> "",
         "derived_contexts" -> derivedContextsJson,
         "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
         "derived_tstamp" -> "2013-11-26 00:03:57.886",
@@ -1978,7 +1978,7 @@ class EventSpec extends Specification {
         "etl_tags" -> "",
         "dvce_sent_tstamp" -> "",
         "refr_domain_userid" -> "",
-        "refr_device_tstamp" -> "",
+        "refr_dvce_tstamp" -> "",
         "derived_contexts" -> derivedContextsJson,
         "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
         "derived_tstamp" -> "2013-11-26 00:03:57.886",
