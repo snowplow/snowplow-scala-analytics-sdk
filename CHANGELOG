@@ -1,3 +1,7 @@
+Version 0.4.1 (2018-03-05)
+--------------------------
+Fix refr_dvce_tstamp field naming (#70)
+
 Version 0.4.0 (2018-02-13)
 --------------------------
 Remove deprecated EventTransformer API (#68)
