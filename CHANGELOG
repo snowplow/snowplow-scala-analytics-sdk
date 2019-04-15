@@ -1,3 +1,10 @@
+Version 0.4.2 (2019-x-x)
+--------------------------
+Bump iglu-core to 0.5.1 (#73)
+Bump SBT to 1.2.8 (#74)
+Add decoder for Event (#78)
+Change Travis distribution to Trusty (#82)
+
 Version 0.4.1 (2018-03-05)
 --------------------------
 Fix refr_dvce_tstamp field naming (#70)
