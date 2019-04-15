@@ -15,7 +15,7 @@ import sbt._
 object Dependencies {
 
   object V {
-    val igluCore       = "0.4.0"
+    val igluCore       = "0.5.0"
     val cats           = "1.6.0"
     val circe          = "0.11.1"
     val aws            = "1.11.490"
