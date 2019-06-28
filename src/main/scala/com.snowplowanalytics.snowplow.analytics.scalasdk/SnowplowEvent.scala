@@ -14,7 +14,12 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 
 // circe
 import io.circe.syntax._
-import io.circe.{Encoder, Json, JsonObject}
+import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Encoder, Json, JsonObject, Decoder, DecodingFailure}
+import io.circe.java8._
+import io.circe.CursorOp.DownField
+//cats
+import cats.implicits._
 
 // iglu
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
@@ -61,6 +66,10 @@ object SnowplowEvent {
       ).asJson
     }
 
+  implicit val contextsDecoder = deriveDecoder[Contexts].recover {
+    case DecodingFailure(_, List(DownField("data"), DownField(_))) => Contexts(List())
+  }
+
   implicit final val unstructCirceEncoder: Encoder[UnstructEvent] =
     Encoder.instance { unstructEvent: UnstructEvent =>
       if (unstructEvent.data.isEmpty) Json.Null
@@ -69,6 +78,12 @@ object SnowplowEvent {
         ("data", unstructEvent.data.asJson)
       ).asJson
     }
+
+  implicit val unstructEventDecoder = deriveDecoder[UnstructEvent].recover {
+    case DecodingFailure(_, List(DownField("data"), DownField(_))) => UnstructEvent(None)
+  }
+
+  implicit val eventDecoder: Decoder[Event] = deriveDecoder[Event]
 
   /**
     * @param shredProperty Type of self-describing entity
