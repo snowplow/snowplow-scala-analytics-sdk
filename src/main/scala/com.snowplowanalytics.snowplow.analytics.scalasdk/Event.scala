@@ -17,7 +17,7 @@ import java.time.Instant
 import java.util.UUID
 
 // circe
-import io.circe.{Encoder, Json, JsonObject, ObjectEncoder}
+import io.circe.{Encoder, Json, JsonObject, ObjectEncoder, Decoder}
 import io.circe.Json.JString
 import io.circe.generic.semiauto._
 import io.circe.syntax._
@@ -240,6 +240,8 @@ object Event {
     * Automatically derived Circe encoder
     */
   implicit val jsonEncoder: ObjectEncoder[Event] = deriveEncoder[Event]
+
+  implicit def eventDecoder: Decoder[Event] = deriveDecoder[Event]
 
   /**
     * Derived TSV parser for the Event class
