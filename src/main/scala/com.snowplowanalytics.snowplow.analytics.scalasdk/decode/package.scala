@@ -12,15 +12,19 @@
  */
 package com.snowplowanalytics.snowplow.analytics.scalasdk
 
-import cats.data.ValidatedNel
+import cats.data.{Validated, ValidatedNel}
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo
 
 package object decode {
   /** Expected name of the field */
   type Key = Symbol
 
   /** Result of single-value parsing */
-  type DecodedValue[A] = Either[(Key, String), A]
+  type DecodedValue[A] = Either[RowDecodingErrorInfo, A]
 
-  /** Result of TSV line parsing, which is either an event or non empty list of parse errors */
-  type DecodeResult[A] = ValidatedNel[String, A]
+  /** Result of row decode process */
+  type RowDecodeResult[A] = ValidatedNel[RowDecodingErrorInfo, A]
+
+  /** Result of TSV line parsing, which is either an event or parse error */
+  type DecodeResult[A] = Validated[ParsingError, A]
 }

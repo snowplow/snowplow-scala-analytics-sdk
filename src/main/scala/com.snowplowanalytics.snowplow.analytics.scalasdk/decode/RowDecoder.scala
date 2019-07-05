@@ -16,6 +16,7 @@ import shapeless._
 import cats.syntax.validated._
 import cats.syntax.either._
 import cats.syntax.apply._
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo.UnexpectedRowDecodingError
 
 /**
   * Type class to decode List of keys-value pairs into HList
@@ -23,7 +24,7 @@ import cats.syntax.apply._
   * Values are actual TSV columns
   */
 private[scalasdk] trait RowDecoder[L <: HList] extends Serializable {
-  def apply(row: List[(Key, String)]): DecodeResult[L]
+  def apply(row: List[(Key, String)]): RowDecodeResult[L]
 }
 
 private[scalasdk] object RowDecoder {
@@ -31,25 +32,24 @@ private[scalasdk] object RowDecoder {
 
   def apply[L <: HList](implicit fromRow: RowDecoder[L]): RowDecoder[L] = fromRow
 
-  def fromFunc[L <: HList](f: List[(Key, String)] => DecodeResult[L]): RowDecoder[L] =
+  def fromFunc[L <: HList](f: List[(Key, String)] => RowDecodeResult[L]): RowDecoder[L] =
     new RowDecoder[L] {
       def apply(row: List[(Key, String)]) = f(row)
     }
 
   /** Parse TSV row into HList */
-  private def parse[H: ValueDecoder, T <: HList: RowDecoder](row: List[(Key, String)]) =
+  private def parse[H: ValueDecoder, T <: HList: RowDecoder](row: List[(Key, String)]): RowDecodeResult[H :: T] =
     row match {
       case h :: t =>
-        val hv: DecodeResult[H] =
-          ValueDecoder[H].parse(h).leftMap(_._2).toValidatedNel
-        val tv = RowDecoder[T].apply(t)
+        val hv: RowDecodeResult[H] = ValueDecoder[H].parse(h).toValidatedNel
+        val tv: RowDecodeResult[T] = RowDecoder[T].apply(t)
         (hv, tv).mapN { _ :: _ }
-      case Nil => "Not enough values, format is invalid".invalidNel
+      case Nil => UnexpectedRowDecodingError("Not enough values, format is invalid").invalidNel
     }
 
-  implicit val hnilFromRow: RowDecoder[HNil] = fromFunc {
+  implicit def hnilFromRow: RowDecoder[HNil] = fromFunc {
     case Nil => HNil.validNel
-    case rows => s"No more values expected, following provided: ${rows.map(_._2).mkString(", ")}".invalidNel
+    case rows => UnexpectedRowDecodingError(s"No more values expected, following provided: ${rows.map(_._2).mkString(", ")}").invalidNel
   }
 
   implicit def hconsFromRow[H: ValueDecoder, T <: HList: RowDecoder]: RowDecoder[H :: T] =

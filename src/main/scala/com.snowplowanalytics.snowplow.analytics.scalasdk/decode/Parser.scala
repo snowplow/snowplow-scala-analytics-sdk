@@ -15,8 +15,8 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk.decode
 import shapeless._
 import shapeless.ops.record._
 import shapeless.ops.hlist._
-
-import Parser._
+import cats.data.{NonEmptyList, Validated}
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.{ColumnNumberMismatch, NonTSVPayload, RowDecodingError}
 
 private[scalasdk] trait Parser[A] extends Serializable {
   /** Heterogeneous TSV values */
@@ -33,9 +33,16 @@ private[scalasdk] trait Parser[A] extends Serializable {
 
   def parse(row: String): DecodeResult[A] = {
     val values = row.split("\t", -1)
-    val zipped = knownKeys.zipAll(values, UnknownKeyPlaceholder, ValueIsMissingPlaceholder)
-    val decoded = decoder(zipped)
-    decoded.map { decodedValue => generic.from(decodedValue) }
+    if (values.length == 1) {
+      Validated.Invalid(NonTSVPayload)
+    }
+    else if (values.length != knownKeys.length) {
+      Validated.Invalid(ColumnNumberMismatch(values.length))
+    } else {
+      val zipped = knownKeys.zip(values)
+      val decoded = decoder(zipped).leftMap(e => RowDecodingError(e))
+      decoded.map { decodedValue => generic.from(decodedValue) }
+    }
   }
 }
 
@@ -60,11 +67,6 @@ object Parser {
       }
     }
   }
-
-  /** Key name that will be used if TSV has more columns than a class */
-  val UnknownKeyPlaceholder = 'UnknownKey
-  /** Value that will be used if class has more fields than a TSV */
-  val ValueIsMissingPlaceholder = "VALUE IS MISSING"
 
   /** Derive a TSV parser for `A` */
   private[scalasdk] def deriveFor[A]: DeriveParser[A] =
