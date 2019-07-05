@@ -12,15 +12,29 @@
  */
 package com.snowplowanalytics.snowplow.analytics.scalasdk
 
-import cats.data.ValidatedNel
+import cats.data.{Validated, ValidatedNel}
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo
+import io.circe.{Decoder, Encoder}
+import io.circe.syntax._
 
 package object decode {
   /** Expected name of the field */
   type Key = Symbol
 
-  /** Result of single-value parsing */
-  type DecodedValue[A] = Either[(Key, String), A]
+  object Key {
+    implicit val analyticsSdkKeyCirceEncoder: Encoder[Key] =
+      Encoder.instance(_.toString.stripPrefix("'").asJson)
 
-  /** Result of TSV line parsing, which is either an event or non empty list of parse errors */
-  type DecodeResult[A] = ValidatedNel[String, A]
+    implicit val analyticsSdkKeyCirceDecoder: Decoder[Key] =
+      Decoder.instance(_.as[String].map(Symbol(_)))
+  }
+
+  /** Result of single-value parsing */
+  type DecodedValue[A] = Either[RowDecodingErrorInfo, A]
+
+  /** Result of row decode process */
+  type RowDecodeResult[A] = ValidatedNel[RowDecodingErrorInfo, A]
+
+  /** Result of TSV line parsing, which is either an event or parse error */
+  type DecodeResult[A] = Validated[ParsingError, A]
 }
