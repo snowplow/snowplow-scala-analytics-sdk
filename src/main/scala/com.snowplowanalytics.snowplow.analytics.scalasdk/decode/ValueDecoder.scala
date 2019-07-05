@@ -34,6 +34,8 @@ import io.circe.{Error, Json}
 // This library
 import com.snowplowanalytics.snowplow.analytics.scalasdk.Common.{ContextsCriterion, UnstructEventCriterion}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent.{Contexts, UnstructEvent}
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 
 private[decode] trait ValueDecoder[A] {
   def parse(column: (Key, String)): DecodedValue[A]
@@ -50,7 +52,7 @@ private[decode] object ValueDecoder {
   implicit final val stringColumnDecoder: ValueDecoder[String] =
     fromFunc[String] {
       case (key, value) =>
-        if (value.isEmpty) (key, s"Field $key cannot be empty").asLeft else value.asRight
+        if (value.isEmpty) InvalidValue(key, value, s"Field $key cannot be empty").asLeft else value.asRight
     }
 
   implicit final val stringOptionColumnDecoder: ValueDecoder[Option[String]] =
@@ -67,7 +69,7 @@ private[decode] object ValueDecoder {
           value.toInt.some.asRight
         } catch {
           case _: NumberFormatException =>
-            (key, s"Cannot parse key $key with value $value into integer").asLeft
+            InvalidValue(key, value, s"Cannot parse key $key with value $value into integer").asLeft
         }
     }
 
@@ -75,13 +77,13 @@ private[decode] object ValueDecoder {
     fromFunc[UUID] {
       case (key, value) =>
         if (value.isEmpty)
-          (key, s"Field $key cannot be empty").asLeft
+          InvalidValue(key, value, s"Field $key cannot be empty").asLeft
         else
           try {
-            UUID.fromString(value).asRight[(Key, String)]
+            UUID.fromString(value).asRight[RowDecodingErrorInfo]
           } catch {
             case _: IllegalArgumentException =>
-              (key, s"Cannot parse key $key with value $value into UUID").asLeft
+              InvalidValue(key, value, s"Cannot parse key $key with value $value into UUID").asLeft
           }
     }
 
@@ -92,7 +94,7 @@ private[decode] object ValueDecoder {
           case "0" => false.some.asRight
           case "1" => true.some.asRight
           case ""  => none[Boolean].asRight
-          case _   => (key, s"Cannot parse key $key with value $value into boolean").asLeft
+          case _   => InvalidValue(key, value, s"Cannot parse key $key with value $value into boolean").asLeft
         }
     }
 
@@ -105,7 +107,7 @@ private[decode] object ValueDecoder {
           value.toDouble.some.asRight
         } catch {
           case _: NumberFormatException =>
-            (key, s"Cannot parse key $key with value $value into double").asLeft
+            InvalidValue(key, value, s"Cannot parse key $key with value $value into double").asLeft
         }
     }
 
@@ -113,14 +115,14 @@ private[decode] object ValueDecoder {
     fromFunc[Instant] {
       case (key, value) =>
         if (value.isEmpty)
-          (key, s"Field $key cannot be empty").asLeft
+          InvalidValue(key, value, s"Field $key cannot be empty").asLeft
         else {
           val tstamp = reformatTstamp(value)
           try {
             Instant.parse(tstamp).asRight
           } catch {
             case _: DateTimeParseException =>
-              (key, s"Cannot parse key $key with value $value into datetime").asLeft
+              InvalidValue(key, value, s"Cannot parse key $key with value $value into datetime").asLeft
           }
         }
     }
@@ -129,14 +131,14 @@ private[decode] object ValueDecoder {
     fromFunc[Option[Instant]] {
       case (key, value) =>
       if (value.isEmpty)
-        none[Instant].asRight[(Key, String)]
+        none[Instant].asRight[RowDecodingErrorInfo]
       else {
         val tstamp = reformatTstamp(value)
         try {
           Instant.parse(tstamp).some.asRight
         } catch {
           case _: DateTimeParseException =>
-            (key, s"Cannot parse key $key with value $value into datetime").asLeft
+            InvalidValue(key, value, s"Cannot parse key $key with value $value into datetime").asLeft
         }
       }
     }
@@ -144,9 +146,9 @@ private[decode] object ValueDecoder {
   implicit final val unstructuredJson: ValueDecoder[UnstructEvent] =
     fromFunc[UnstructEvent] {
       case (key, value) =>
-        def asLeft(error: Error): (Key, String) = (key, error.show)
+        def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, value, error.show)
         if (value.isEmpty)
-          UnstructEvent(None).asRight[(Key, String)]
+          UnstructEvent(None).asRight[RowDecodingErrorInfo]
         else
           parseJson(value)
             .flatMap(_.as[SelfDescribingData[Json]])
@@ -154,7 +156,7 @@ private[decode] object ValueDecoder {
             case Right(SelfDescribingData(schema, data)) if UnstructEventCriterion.matches(schema) =>
               data.as[SelfDescribingData[Json]].leftMap(asLeft).map(_.some).map(UnstructEvent.apply)
             case Right(SelfDescribingData(schema, _)) =>
-              (key, s"Unknown payload: ${schema.toSchemaUri}").asLeft[UnstructEvent]
+              InvalidValue(key, value, s"Unknown payload: ${schema.toSchemaUri}").asLeft[UnstructEvent]
             case Left(error) => error.asLeft[UnstructEvent]
           }
     }
@@ -162,9 +164,9 @@ private[decode] object ValueDecoder {
   implicit final val contexts: ValueDecoder[Contexts] =
     fromFunc[Contexts] {
       case (key, value) =>
-        def asLeft(error: Error): (Key, String) = (key, error.show)
+        def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, value, error.show)
         if (value.isEmpty)
-          Contexts(List()).asRight[(Key, String)]
+          Contexts(List()).asRight[RowDecodingErrorInfo]
         else
           parseJson(value)
             .flatMap(_.as[SelfDescribingData[Json]])
@@ -172,7 +174,7 @@ private[decode] object ValueDecoder {
             case Right(SelfDescribingData(schema, data)) if ContextsCriterion.matches(schema) =>
               data.as[List[SelfDescribingData[Json]]].leftMap(asLeft).map(Contexts.apply)
             case Right(SelfDescribingData(schema, _)) =>
-              (key, s"Unknown payload: ${schema.toSchemaUri}").asLeft[Contexts]
+              InvalidValue(key, value, s"Unknown payload: ${schema.toSchemaUri}").asLeft[Contexts]
             case Left(error) => error.asLeft[Contexts]
           }
     }

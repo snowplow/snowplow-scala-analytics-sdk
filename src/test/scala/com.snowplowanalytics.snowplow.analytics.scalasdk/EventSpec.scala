@@ -20,6 +20,7 @@ import java.util.UUID
 // cats
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.NonEmptyList
+import cats.syntax.either._
 
 // circe
 import io.circe.{Json, JsonObject}
@@ -34,6 +35,8 @@ import com.snowplowanalytics.iglu.core.{SchemaKey, SchemaVer, SelfDescribingData
 
 // This library
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent._
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError._
+import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 
 /**
   * Tests Event case class
@@ -713,7 +716,7 @@ class EventSpec extends Specification {
         "event_version": "1-0-0",
         "event_fingerprint": "e3dbfa9cca0412c3d4052863cefb547f",
         "true_tstamp": "2013-11-26T00:03:57.886Z"
-      }""").getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
+      }""").right.getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
 
       // JSON output must be equal to output from the old transformer. (NB: field ordering in new JSON will be randomized)
       eventJson mustEqual expectedJson
@@ -1127,7 +1130,7 @@ class EventSpec extends Specification {
         "event_version": "1-0-0",
         "event_fingerprint": "e3dbfa9cca0412c3d4052863cefb547f",
         "true_tstamp": "2013-11-26T00:03:57.886Z"
-      }""").getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
+      }""").right.getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
 
       // JSON output must be equal to output from the old transformer. (NB: field ordering in new JSON will be randomized)
       eventJson mustEqual expectedJson
@@ -1658,7 +1661,7 @@ class EventSpec extends Specification {
         "event_version": "1-0-0",
         "event_fingerprint": "e3dbfa9cca0412c3d4052863cefb547f",
         "true_tstamp": "2013-11-26T00:03:57.886Z"
-      }""").getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
+      }""").right.getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
 
       // JSON output must be equal to output from the old transformer. (NB: field ordering in new JSON will be randomized)
       eventJson mustEqual expectedJson
@@ -1854,7 +1857,7 @@ class EventSpec extends Specification {
       )
     }
 
-    "fail if column values are invalid (and combine errors)" in {
+    "fail (and combine errors) if values are invalid" in {
 
       val input = List(
         "app_id" -> "angry-birds",
@@ -1986,23 +1989,187 @@ class EventSpec extends Specification {
         "event_name" -> "link_click",
         "event_format" -> "jsonschema",
         "event_version" -> "1-0-0",
-        "event_fingerprint" -> "e3dbfa9cca0412c3d4052863cefb547f"
+        "event_fingerprint" -> "e3dbfa9cca0412c3d4052863cefb547f",
+        "true_tstamp" -> "2013-11-26 00:03:57.886"
       )
 
       val eventValues = input.unzip._2.mkString("\t")
       val event = Event.parse(eventValues)
 
       // Case class must be correctly invalidated
-      event mustEqual Invalid(NonEmptyList.of(
-        "Cannot parse key 'etl_tstamp with value not_an_instant into datetime",
-        "Field 'collector_tstamp cannot be empty",
-        "Cannot parse key 'event_id with value not_a_uuid into UUID",
-        "Cannot parse key 'txn_id with value not_an_integer into integer",
-        "Field 'v_collector cannot be empty",
-        "Cannot parse key 'geo_latitude with value not_a_double into double",
-        "Cannot parse key 'br_features_pdf with value not_a_boolean into boolean",
-        "Cannot parse key 'true_tstamp with value VALUE IS MISSING into datetime"
-      ))
+      val res = RowDecodingError(
+        NonEmptyList.of(
+          InvalidValue(Symbol("etl_tstamp"), "not_an_instant", "Cannot parse key 'etl_tstamp with value not_an_instant into datetime"),
+          InvalidValue(Symbol("collector_tstamp"), "", "Field 'collector_tstamp cannot be empty"),
+          InvalidValue(Symbol("event_id"), "not_a_uuid", "Cannot parse key 'event_id with value not_a_uuid into UUID"),
+          InvalidValue(Symbol("txn_id"), "not_an_integer", "Cannot parse key 'txn_id with value not_an_integer into integer"),
+          InvalidValue(Symbol("v_collector"), "", "Field 'v_collector cannot be empty"),
+          InvalidValue(Symbol("geo_latitude"), "not_a_double", "Cannot parse key 'geo_latitude with value not_a_double into double"),
+          InvalidValue(Symbol("br_features_pdf"), "not_a_boolean", "Cannot parse key 'br_features_pdf with value not_a_boolean into boolean")
+        )
+      )
+      event mustEqual Invalid(res)
+    }
+
+    "fail if payload is not TSV" in {
+      val event = Event.parse("non tsv")
+      event mustEqual Invalid(NotTSV)
+    }
+
+    "fail if there are more fields than expected" in {
+      val input = List(
+        "app_id" -> "angry-birds",
+        "platform" -> "web",
+        "etl_tstamp" -> "not_an_instant",
+        "collector_tstamp" -> "",
+        "dvce_created_tstamp" -> "2013-11-26 00:03:57.885",
+        "event" -> "page_view",
+        "event_id" -> "not_a_uuid",
+        "txn_id" -> "not_an_integer",
+        "name_tracker" -> "cloudfront-1",
+        "v_tracker" -> "js-2.1.0",
+        "v_collector" -> "",
+        "v_etl" -> "serde-0.5.2",
+        "user_id" -> "jon.doe@email.com",
+        "user_ipaddress" -> "92.231.54.234",
+        "user_fingerprint" -> "2161814971",
+        "domain_userid" -> "bc2e92ec6c204a14",
+        "domain_sessionidx" -> "3",
+        "network_userid" -> "ecdff4d0-9175-40ac-a8bb-325c49733607",
+        "geo_country" -> "US",
+        "geo_region" -> "TX",
+        "geo_city" -> "New York",
+        "geo_zipcode" -> "94109",
+        "geo_latitude" -> "not_a_double",
+        "geo_longitude" -> "-122.4124",
+        "geo_region_name" -> "Florida",
+        "ip_isp" -> "FDN Communications",
+        "ip_organization" -> "Bouygues Telecom",
+        "ip_domain" -> "nuvox.net",
+        "ip_netspeed" -> "Cable/DSL",
+        "page_url" -> "http://www.snowplowanalytics.com",
+        "page_title" -> "On Analytics",
+        "page_referrer" -> "",
+        "page_urlscheme" -> "http",
+        "page_urlhost" -> "www.snowplowanalytics.com",
+        "page_urlport" -> "80",
+        "page_urlpath" -> "/product/index.html",
+        "page_urlquery" -> "id=GTM-DLRG",
+        "page_urlfragment" -> "4-conclusion",
+        "refr_urlscheme" -> "",
+        "refr_urlhost" -> "",
+        "refr_urlport" -> "",
+        "refr_urlpath" -> "",
+        "refr_urlquery" -> "",
+        "refr_urlfragment" -> "",
+        "refr_medium" -> "",
+        "refr_source" -> "",
+        "refr_term" -> "",
+        "mkt_medium" -> "",
+        "mkt_source" -> "",
+        "mkt_term" -> "",
+        "mkt_content" -> "",
+        "mkt_campaign" -> "",
+        "contexts" -> contextsJson,
+        "se_category" -> "",
+        "se_action" -> "",
+        "se_label" -> "",
+        "se_property" -> "",
+        "se_value" -> "",
+        "unstruct_event" -> unstructJson,
+        "tr_orderid" -> "",
+        "tr_affiliation" -> "",
+        "tr_total" -> "",
+        "tr_tax" -> "",
+        "tr_shipping" -> "",
+        "tr_city" -> "",
+        "tr_state" -> "",
+        "tr_country" -> "",
+        "ti_orderid" -> "",
+        "ti_sku" -> "",
+        "ti_name" -> "",
+        "ti_category" -> "",
+        "ti_price" -> "",
+        "ti_quantity" -> "",
+        "pp_xoffset_min" -> "",
+        "pp_xoffset_max" -> "",
+        "pp_yoffset_min" -> "",
+        "pp_yoffset_max" -> "",
+        "useragent" -> "",
+        "br_name" -> "",
+        "br_family" -> "",
+        "br_version" -> "",
+        "br_type" -> "",
+        "br_renderengine" -> "",
+        "br_lang" -> "",
+        "br_features_pdf" -> "not_a_boolean",
+        "br_features_flash" -> "0",
+        "br_features_java" -> "",
+        "br_features_director" -> "",
+        "br_features_quicktime" -> "",
+        "br_features_realplayer" -> "",
+        "br_features_windowsmedia" -> "",
+        "br_features_gears" -> "",
+        "br_features_silverlight" -> "",
+        "br_cookies" -> "",
+        "br_colordepth" -> "",
+        "br_viewwidth" -> "",
+        "br_viewheight" -> "",
+        "os_name" -> "",
+        "os_family" -> "",
+        "os_manufacturer" -> "",
+        "os_timezone" -> "",
+        "dvce_type" -> "",
+        "dvce_ismobile" -> "",
+        "dvce_screenwidth" -> "",
+        "dvce_screenheight" -> "",
+        "doc_charset" -> "",
+        "doc_width" -> "",
+        "doc_height" -> "",
+        "tr_currency" -> "",
+        "tr_total_base" -> "",
+        "tr_tax_base" -> "",
+        "tr_shipping_base" -> "",
+        "ti_currency" -> "",
+        "ti_price_base" -> "",
+        "base_currency" -> "",
+        "geo_timezone" -> "",
+        "mkt_clickid" -> "",
+        "mkt_network" -> "",
+        "etl_tags" -> "",
+        "dvce_sent_tstamp" -> "",
+        "refr_domain_userid" -> "",
+        "refr_dvce_tstamp" -> "",
+        "derived_contexts" -> derivedContextsJson,
+        "domain_sessionid" -> "2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1",
+        "derived_tstamp" -> "2013-11-26 00:03:57.886",
+        "event_vendor" -> "com.snowplowanalytics.snowplow",
+        "event_name" -> "link_click",
+        "event_format" -> "jsonschema",
+        "event_version" -> "1-0-0",
+        "event_fingerprint" -> "e3dbfa9cca0412c3d4052863cefb547f",
+        "true_tstamp" -> "2013-11-26 00:03:57.886",
+        "additional_field" -> "mock_value"
+      )
+
+      val eventValues = input.unzip._2.mkString("\t")
+      val event = Event.parse(eventValues)
+
+      event mustEqual Invalid(FieldNumberMismatch(132))
+    }
+
+    "fail if there are fewer fields than expected" in {
+      val input = List(
+        "app_id" -> "angry-birds",
+        "platform" -> "web",
+        "etl_tstamp" -> "not_an_instant",
+        "collector_tstamp" -> ""
+      )
+
+      val eventValues = input.unzip._2.mkString("\t")
+      val event = Event.parse(eventValues)
+
+      event mustEqual Invalid(FieldNumberMismatch(4))
     }
 
     "successfully decode encoded event which has no contexts or unstruct_event" in {
