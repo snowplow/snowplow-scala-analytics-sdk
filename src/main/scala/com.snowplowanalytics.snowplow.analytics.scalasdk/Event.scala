@@ -256,4 +256,18 @@ object Event {
     */
   def parse(line: String): DecodeResult[Event] =
     parser.parse(line)
+
+  /**
+    * Creates an event with only required fields.
+    * All optional fields are set to [[None]].
+    */
+  def basic(id: UUID, collectorTstamp: Instant, vCollector: String, vEtl: String): Event =
+    Event(None, None, None, collectorTstamp, None, None, id, None, None, None, vCollector, vEtl, None, None, None,
+      None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+      None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+      Contexts(Nil), None, None, None, None, None, UnstructEvent(None), None, None, None, None, None, None, None, None,
+      None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+      None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+      None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+      Contexts(Nil), None, None, None, None, None, None, None, None)
 }
