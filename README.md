@@ -33,7 +33,7 @@ limitations under the License.
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
-[release-image]: http://img.shields.io/badge/release-0.4.2-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-1.0.0-blue.svg?style=flat
 [releases]: https://github.com/snowplow/snowplow-scala-analytics-sdk/releases
 
 [setup-guide]: https://github.com/snowplow/snowplow/wiki/Scala-Analytics-SDK-setup
