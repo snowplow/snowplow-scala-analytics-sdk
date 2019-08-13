@@ -1,3 +1,10 @@
+Version 1.0.0 (2019-x-x)
+--------------------------
+Make parsing errors type-safe (#75)
+Add function for creating empty event (#81)
+Remove Vagrant setup (#84)
+Extend copyright notice to 2019 (#85)
+
 Version 0.4.2 (2019-08-06)
 --------------------------
 Bump iglu-core to 0.5.1 (#73)
