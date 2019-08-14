@@ -19,6 +19,10 @@ import Keys._
 import bintray.BintrayPlugin._
 import bintray.BintrayKeys._
 
+// Mima plugin
+import com.typesafe.tools.mima.plugin.MimaKeys._
+import com.typesafe.tools.mima.plugin.MimaPlugin
+
 object BuildSettings {
 
   // Basic settings for our app
@@ -58,5 +62,20 @@ object BuildSettings {
           <organizationUrl>http://snowplowanalytics.com</organizationUrl>
         </developer>
       </developers>)
+  )
+
+  // If new version introduces breaking changes,
+  // clear-out mimaBinaryIssueFilters and mimaPreviousVersions.
+  // Otherwise, add previous version to set without
+  // removing other versions.
+  val mimaPreviousVersions = Set()
+
+  val mimaSettings = MimaPlugin.mimaDefaultSettings ++ Seq(
+    mimaPreviousArtifacts := mimaPreviousVersions.map { organization.value %% name.value % _ },
+    mimaBinaryIssueFilters ++= Seq(),
+    test in Test := {
+      mimaReportBinaryIssues.value
+      (test in Test).value
+    }
   )
 }
