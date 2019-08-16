@@ -20,10 +20,14 @@ lazy val root = project.in(file("."))
     scalaVersion       := "2.12.8",
     crossScalaVersions := Seq("2.11.12", "2.12.8")
   ))
+  .enablePlugins(SiteScaladocPlugin)
+  .enablePlugins(GhpagesPlugin)
+  .enablePlugins(PreprocessPlugin)
   .settings(BuildSettings.buildSettings)
   .settings(BuildSettings.publishSettings)
   .settings(BuildSettings.mimaSettings)
   .settings(BuildSettings.scoverageSettings)
+  .settings(BuildSettings.ghPagesSettings)
   .settings(Seq(
     shellPrompt := { _ => name.value + " > " }
   ))
