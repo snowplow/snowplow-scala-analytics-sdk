@@ -12,7 +12,8 @@ Use this SDK with **[Apache Spark][spark]**, **[AWS Lambda][lambda]**, **[Apache
 
 ## Documentation
 
-[Setup guide][setup-guide] and [User guide][user-guide] are available at [Snowplow wiki][snowplow-wiki].
+[Setup guide][setup-guide] and [User guide][user-guide] are available on the [Snowplow wiki][snowplow-wiki].
+The Scaladoc website of the project can be found [here][scala-doc].
 
 ## Copyright and license
 
@@ -39,6 +40,7 @@ limitations under the License.
 [setup-guide]: https://github.com/snowplow/snowplow/wiki/Scala-Analytics-SDK-setup
 [user-guide]: https://github.com/snowplow/snowplow/wiki/Scala-Analytics-SDK
 [snowplow-wiki]: https://github.com/snowplow/snowplow/wiki
+[scala-doc]: http://snowplow.github.io/snowplow-scala-analytics-sdk/
 
 [snowplow]: http://snowplowanalytics.com
 [enriched-events]: https://github.com/snowplow/snowplow/wiki/canonical-event-model
