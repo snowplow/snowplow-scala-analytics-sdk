@@ -32,6 +32,7 @@ import com.amazonaws.services.s3.model.{ ListObjectsV2Request, ListObjectsV2Resu
   * @param dynamodb AWS DynamoDB client
   * @param tableName existing DynamoDB table name with run manifests
   */
+@deprecated("In favor of https://github.com/snowplow-incubator/snowplow-processing-manifest/")
 class RunManifests(dynamodb: AmazonDynamoDB, tableName: String) {
   /**
     * Creates DynamoDB table with all necessary settings
@@ -62,6 +63,7 @@ class RunManifests(dynamodb: AmazonDynamoDB, tableName: String) {
 /**
  * Module with primary run-manifests functions, without applied client
  */
+@deprecated("In favor of https://github.com/snowplow-incubator/snowplow-processing-manifest/")
 object RunManifests {
 
   /**
