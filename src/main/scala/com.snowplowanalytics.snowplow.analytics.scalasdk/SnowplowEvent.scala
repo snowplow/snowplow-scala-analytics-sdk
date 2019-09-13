@@ -41,6 +41,19 @@ object SnowplowEvent {
     }
   }
 
+  implicit final val unstructCirceEncoder: Encoder[UnstructEvent] =
+    Encoder.instance { unstructEvent: UnstructEvent =>
+      if (unstructEvent.data.isEmpty) Json.Null
+      else JsonObject(
+        ("schema", Common.UnstructEventUri.toSchemaUri.asJson),
+        ("data", unstructEvent.data.asJson)
+      ).asJson
+    }
+
+  implicit val unstructEventDecoder: Decoder[UnstructEvent] = deriveDecoder[UnstructEvent].recover {
+    case DecodingFailure(_, DownField("data") :: _) => UnstructEvent(None)
+  }
+
   /**
     * A JSON representation of an atomic event's contexts or derived_contexts fields.
     *
@@ -67,20 +80,7 @@ object SnowplowEvent {
     }
 
   implicit val contextsDecoder: Decoder[Contexts] = deriveDecoder[Contexts].recover {
-    case DecodingFailure(_, List(DownField("data"), DownField(_))) => Contexts(List())
-  }
-
-  implicit final val unstructCirceEncoder: Encoder[UnstructEvent] =
-    Encoder.instance { unstructEvent: UnstructEvent =>
-      if (unstructEvent.data.isEmpty) Json.Null
-      else JsonObject(
-        ("schema", Common.UnstructEventUri.toSchemaUri.asJson),
-        ("data", unstructEvent.data.asJson)
-      ).asJson
-    }
-
-  implicit val unstructEventDecoder: Decoder[UnstructEvent] = deriveDecoder[UnstructEvent].recover {
-    case DecodingFailure(_, List(DownField("data"), DownField(_))) => UnstructEvent(None)
+    case DecodingFailure(_, DownField("data") :: _) => Contexts(List())
   }
 
   /**
