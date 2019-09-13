@@ -22,9 +22,10 @@ import cats.data.Validated.{Invalid, Valid}
 import cats.data.NonEmptyList
 
 // circe
-import io.circe.{Json, JsonObject}
+import io.circe.{Json, JsonObject, Encoder, Decoder}
 import io.circe.syntax._
 import io.circe.parser._
+import io.circe.generic.semiauto._
 
 // Specs2
 import org.specs2.mutable.Specification
@@ -2305,7 +2306,8 @@ class EventSpec extends Specification {
         event_fingerprint = Some("e3dbfa9cca0412c3d4052863cefb547f"),
         true_tstamp = Some(Instant.parse("2013-11-26T00:03:57.886Z"))
       )
-      val eventJson = event.toJson(false)
+      val eventJsonStr = event.toJson(false).noSpaces
+      val eventJson = parse(eventJsonStr).getOrElse(throw new RuntimeException("Error while converting to json"))
       eventJson.as[Event] must beRight(event)
     }
 
@@ -2902,6 +2904,152 @@ class EventSpec extends Specification {
       )
       val eventJson = event.toJson(false)
       eventJson.as[Event] must beRight(event)
+    }
+
+    "successfully decode object with event which has no contexts or unstruct_event" in {
+      case class Temp(event: Event)
+      implicit val tempClassJsonEncoder: Encoder[Temp] = deriveEncoder
+      implicit val tempClassJsonDecoder: Decoder[Temp] = deriveDecoder
+      val event = Event(
+        app_id = Some("angry-birds"),
+        platform = Some("web"),
+        etl_tstamp = Some(Instant.parse("2017-01-26T00:01:25.292Z")),
+        collector_tstamp = Instant.parse("2013-11-26T00:02:05Z"),
+        dvce_created_tstamp = Some(Instant.parse("2013-11-26T00:03:57.885Z")),
+        event = Some("page_view"),
+        event_id = UUID.fromString("c6ef3124-b53a-4b13-a233-0088f79dcbcb"),
+        txn_id = Some(41828),
+        name_tracker = Some("cloudfront-1"),
+        v_tracker = Some("js-2.1.0"),
+        v_collector = "clj-tomcat-0.1.0",
+        v_etl = "serde-0.5.2",
+        user_id = Some("jon.doe@email.com"),
+        user_ipaddress = Some("92.231.54.234"),
+        user_fingerprint = Some("2161814971"),
+        domain_userid = Some("bc2e92ec6c204a14"),
+        domain_sessionidx = Some(3),
+        network_userid = Some("ecdff4d0-9175-40ac-a8bb-325c49733607"),
+        geo_country = Some("US"),
+        geo_region = Some("TX"),
+        geo_city = Some("New York"),
+        geo_zipcode = Some("94109"),
+        geo_latitude = Some(37.443604),
+        geo_longitude = Some(-122.4124),
+        geo_region_name = Some("Florida"),
+        ip_isp = Some("FDN Communications"),
+        ip_organization = Some("Bouygues Telecom"),
+        ip_domain = Some("nuvox.net"),
+        ip_netspeed = Some("Cable/DSL"),
+        page_url = Some("http://www.snowplowanalytics.com"),
+        page_title = Some("On Analytics"),
+        page_referrer = None,
+        page_urlscheme = Some("http"),
+        page_urlhost = Some("www.snowplowanalytics.com"),
+        page_urlport = Some(80),
+        page_urlpath = Some("/product/index.html"),
+        page_urlquery = Some("id=GTM-DLRG"),
+        page_urlfragment = Some("4-conclusion"),
+        refr_urlscheme = None,
+        refr_urlhost = None,
+        refr_urlport = None,
+        refr_urlpath = None,
+        refr_urlquery = None,
+        refr_urlfragment = None,
+        refr_medium = None,
+        refr_source = None,
+        refr_term = None,
+        mkt_medium = None,
+        mkt_source = None,
+        mkt_term = None,
+        mkt_content = None,
+        mkt_campaign = None,
+        contexts = Contexts(List()),
+        se_category = None,
+        se_action = None,
+        se_label = None,
+        se_property = None,
+        se_value = None,
+        unstruct_event = UnstructEvent(None),
+        tr_orderid = None,
+        tr_affiliation = None,
+        tr_total = None,
+        tr_tax = None,
+        tr_shipping = None,
+        tr_city = None,
+        tr_state = None,
+        tr_country = None,
+        ti_orderid = None,
+        ti_sku = None,
+        ti_name = None,
+        ti_category = None,
+        ti_price = None,
+        ti_quantity = None,
+        pp_xoffset_min = None,
+        pp_xoffset_max = None,
+        pp_yoffset_min = None,
+        pp_yoffset_max = None,
+        useragent = None,
+        br_name = None,
+        br_family = None,
+        br_version = None,
+        br_type = None,
+        br_renderengine = None,
+        br_lang = None,
+        br_features_pdf = Some(true),
+        br_features_flash = Some(false),
+        br_features_java = None,
+        br_features_director = None,
+        br_features_quicktime = None,
+        br_features_realplayer = None,
+        br_features_windowsmedia = None,
+        br_features_gears = None,
+        br_features_silverlight = None,
+        br_cookies = None,
+        br_colordepth = None,
+        br_viewwidth = None,
+        br_viewheight = None,
+        os_name = None,
+        os_family = None,
+        os_manufacturer = None,
+        os_timezone = None,
+        dvce_type = None,
+        dvce_ismobile = None,
+        dvce_screenwidth = None,
+        dvce_screenheight = None,
+        doc_charset = None,
+        doc_width = None,
+        doc_height = None,
+        tr_currency = None,
+        tr_total_base = None,
+        tr_tax_base = None,
+        tr_shipping_base = None,
+        ti_currency = None,
+        ti_price_base = None,
+        base_currency = None,
+        geo_timezone = None,
+        mkt_clickid = None,
+        mkt_network = None,
+        etl_tags = None,
+        dvce_sent_tstamp = None,
+        refr_domain_userid = None,
+        refr_dvce_tstamp = None,
+        derived_contexts = Contexts(List()),
+        domain_sessionid = Some("2b15e5c8-d3b1-11e4-b9d6-1681e6b88ec1"),
+        derived_tstamp = Some(Instant.parse("2013-11-26T00:03:57.886Z")),
+        event_vendor = Some("com.snowplowanalytics.snowplow"),
+        event_name = Some("link_click"),
+        event_format = Some("jsonschema"),
+        event_version = Some("1-0-0"),
+        event_fingerprint = Some("e3dbfa9cca0412c3d4052863cefb547f"),
+        true_tstamp = Some(Instant.parse("2013-11-26T00:03:57.886Z"))
+      )
+      val tempInstance = Temp(event)
+      val tempJsonStr = tempInstance.asJson.noSpaces
+      val tempJson = parse(tempJsonStr).getOrElse(throw new RuntimeException("Error while converting to json"))
+      tempJson.as[Temp].map(_.event) must beRight(event)
+//      val eventJsonStr = event.toJson(false).noSpaces
+//      val eventJson = parse(eventJsonStr).getOrElse(throw new RuntimeException("Error while converting to json"))
+//      eventJson.as[Event] must beRight(event)
     }
   }
 

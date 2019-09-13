@@ -67,7 +67,7 @@ object SnowplowEvent {
     }
 
   implicit val contextsDecoder: Decoder[Contexts] = deriveDecoder[Contexts].recover {
-    case DecodingFailure(_, List(DownField("data"), DownField(_))) => Contexts(List())
+    case DecodingFailure(_, l) if l.contains(DownField("data")) => Contexts(List())
   }
 
   implicit final val unstructCirceEncoder: Encoder[UnstructEvent] =
@@ -80,7 +80,7 @@ object SnowplowEvent {
     }
 
   implicit val unstructEventDecoder: Decoder[UnstructEvent] = deriveDecoder[UnstructEvent].recover {
-    case DecodingFailure(_, List(DownField("data"), DownField(_))) => UnstructEvent(None)
+    case DecodingFailure(_, l) if l.contains(DownField("data")) => UnstructEvent(None)
   }
 
   /**
