@@ -1,3 +1,17 @@
+Version 1.0.0 (2019-11-06)
+--------------------------
+Make parsing errors type-safe (#75)
+Add function to create minimal event (#81)
+Deprecate run manifest (#86)
+Fix empty contexts and unstruct_event decoding bug (#92)
+Integrate MiMa (#87)
+Integrate scoverage (#90)
+Integrate sbt-gh-pages to create GH Pages from Scaladoc (#91)
+Remove Vagrant setup (#84)
+Add Travis CI secret key (#93)
+Add encryption label to .travis.yml (#94)
+Extend copyright notice to 2019 (#85)
+
 Version 0.4.2 (2019-08-06)
 --------------------------
 Bump iglu-core to 0.5.1 (#73)

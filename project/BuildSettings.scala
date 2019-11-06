@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -18,6 +18,19 @@ import Keys._
 // Bintray plugin
 import bintray.BintrayPlugin._
 import bintray.BintrayKeys._
+
+// Mima plugin
+import com.typesafe.tools.mima.plugin.MimaKeys._
+import com.typesafe.tools.mima.plugin.MimaPlugin
+
+// Scoverage plugin
+import scoverage.ScoverageKeys._
+
+import com.typesafe.sbt.sbtghpages.GhpagesPlugin.autoImport._
+import com.typesafe.sbt.site.SitePlugin.autoImport._
+import com.typesafe.sbt.site.SiteScaladocPlugin.autoImport._
+import com.typesafe.sbt.SbtGit.GitKeys.{gitBranch, gitRemoteRepo}
+import com.typesafe.sbt.site.preprocess.PreprocessPlugin.autoImport._
 
 object BuildSettings {
 
@@ -58,5 +71,41 @@ object BuildSettings {
           <organizationUrl>http://snowplowanalytics.com</organizationUrl>
         </developer>
       </developers>)
+  )
+
+  // If new version introduces breaking changes,
+  // clear-out mimaBinaryIssueFilters and mimaPreviousVersions.
+  // Otherwise, add previous version to set without
+  // removing other versions.
+  val mimaPreviousVersions = Set()
+
+  val mimaSettings = MimaPlugin.mimaDefaultSettings ++ Seq(
+    mimaPreviousArtifacts := mimaPreviousVersions.map { organization.value %% name.value % _ },
+    mimaBinaryIssueFilters ++= Seq(),
+    test in Test := {
+      mimaReportBinaryIssues.value
+      (test in Test).value
+    }
+  )
+
+  val scoverageSettings = Seq(
+    coverageMinimum := 50,
+    coverageFailOnMinimum := true,
+    coverageHighlighting := false,
+    (test in Test) := {
+      (coverageReport dependsOn (test in Test)).value
+    }
+  )
+
+  val ghPagesSettings = Seq(
+    ghpagesPushSite := (ghpagesPushSite dependsOn makeSite).value,
+    ghpagesNoJekyll := false,
+    gitRemoteRepo := "git@github.com:snowplow/snowplow-scala-analytics-sdk.git",
+    gitBranch := Some("gh-pages"),
+    siteSubdirName in SiteScaladoc := s"${version.value}",
+    preprocessVars in Preprocess := Map("VERSION" -> version.value),
+    excludeFilter in ghpagesCleanSite := new FileFilter {
+      def accept(f: File) = true
+    }
   )
 }

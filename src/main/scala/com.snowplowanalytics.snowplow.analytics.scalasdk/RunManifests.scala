@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -32,6 +32,7 @@ import com.amazonaws.services.s3.model.{ ListObjectsV2Request, ListObjectsV2Resu
   * @param dynamodb AWS DynamoDB client
   * @param tableName existing DynamoDB table name with run manifests
   */
+@deprecated("In favor of https://github.com/snowplow-incubator/snowplow-processing-manifest/", "snowplow-scala-analytics-sdk 1.0.0")
 class RunManifests(dynamodb: AmazonDynamoDB, tableName: String) {
   /**
     * Creates DynamoDB table with all necessary settings
@@ -62,6 +63,7 @@ class RunManifests(dynamodb: AmazonDynamoDB, tableName: String) {
 /**
  * Module with primary run-manifests functions, without applied client
  */
+@deprecated("In favor of https://github.com/snowplow-incubator/snowplow-processing-manifest/", "snowplow-scala-analytics-sdk 1.0.0")
 object RunManifests {
 
   /**
