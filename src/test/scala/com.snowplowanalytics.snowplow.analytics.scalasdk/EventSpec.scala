@@ -20,6 +20,7 @@ import java.util.UUID
 // cats
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.NonEmptyList
+import cats.syntax.either._
 
 // circe
 import io.circe.{Json, JsonObject, Encoder, Decoder}

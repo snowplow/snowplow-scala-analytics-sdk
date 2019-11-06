@@ -13,6 +13,7 @@
 package com.snowplowanalytics.snowplow.analytics.scalasdk
 
 import cats.data.{Validated, ValidatedNel}
+import cats.syntax.either._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo
 import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
