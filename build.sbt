@@ -38,8 +38,6 @@ lazy val root = project.in(file("."))
       Dependencies.cats,
       Dependencies.circeParser,
       Dependencies.circeGeneric,
-      Dependencies.s3,
-      Dependencies.dynamodb,
       // Scala (test only)
       Dependencies.specs2
     )
