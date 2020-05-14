@@ -18,7 +18,7 @@ lazy val root = project.in(file("."))
     version            := "1.0.0",
     description        := "Scala analytics SDK for Snowplow",
     scalaVersion       := "2.12.8",
-    crossScalaVersions := Seq("2.11.12", "2.12.8")
+    crossScalaVersions := Seq("2.12.8")
   ))
   .enablePlugins(SiteScaladocPlugin)
   .enablePlugins(GhpagesPlugin)
@@ -38,7 +38,6 @@ lazy val root = project.in(file("."))
       Dependencies.cats,
       Dependencies.circeParser,
       Dependencies.circeGeneric,
-      Dependencies.circeJava,
       Dependencies.s3,
       Dependencies.dynamodb,
       // Scala (test only)

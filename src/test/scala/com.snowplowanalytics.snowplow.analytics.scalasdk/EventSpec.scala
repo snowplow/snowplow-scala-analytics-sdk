@@ -717,7 +717,7 @@ class EventSpec extends Specification {
         "event_version": "1-0-0",
         "event_fingerprint": "e3dbfa9cca0412c3d4052863cefb547f",
         "true_tstamp": "2013-11-26T00:03:57.886Z"
-      }""").right.getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
+      }""").getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
 
       // JSON output must be equal to output from the old transformer. (NB: field ordering in new JSON will be randomized)
       eventJson mustEqual expectedJson
@@ -1131,7 +1131,7 @@ class EventSpec extends Specification {
         "event_version": "1-0-0",
         "event_fingerprint": "e3dbfa9cca0412c3d4052863cefb547f",
         "true_tstamp": "2013-11-26T00:03:57.886Z"
-      }""").right.getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
+      }""").getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
 
       // JSON output must be equal to output from the old transformer. (NB: field ordering in new JSON will be randomized)
       eventJson mustEqual expectedJson
@@ -1662,7 +1662,7 @@ class EventSpec extends Specification {
         "event_version": "1-0-0",
         "event_fingerprint": "e3dbfa9cca0412c3d4052863cefb547f",
         "true_tstamp": "2013-11-26T00:03:57.886Z"
-      }""").right.getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
+      }""").getOrElse(throw new RuntimeException("Failed to parse expected JSON"))
 
       // JSON output must be equal to output from the old transformer. (NB: field ordering in new JSON will be randomized)
       eventJson mustEqual expectedJson

@@ -25,7 +25,7 @@ import cats.syntax.show._
 
 // iglu
 import com.snowplowanalytics.iglu.core.SelfDescribingData
-import com.snowplowanalytics.iglu.core.circe.instances._
+import com.snowplowanalytics.iglu.core.circe.implicits._
 
 // circe
 import io.circe.parser.{parse => parseJson}
