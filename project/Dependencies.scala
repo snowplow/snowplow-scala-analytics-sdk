@@ -18,7 +18,6 @@ object Dependencies {
     val igluCore       = "1.0.0"
     val cats           = "2.1.1"
     val circe          = "0.13.0"
-    val aws            = "1.11.490"
     // Scala (test only)
     val specs2         = "4.8.0"
   }
@@ -27,8 +26,6 @@ object Dependencies {
   val cats             = "org.typelevel"              %% "cats-core"            % V.cats
   val circeParser      = "io.circe"                   %% "circe-parser"         % V.circe
   val circeGeneric     = "io.circe"                   %% "circe-generic"        % V.circe
-  val s3               = "com.amazonaws"              % "aws-java-sdk-s3"       % V.aws
-  val dynamodb         = "com.amazonaws"              % "aws-java-sdk-dynamodb" % V.aws
   // Scala (test only)
   val specs2           = "org.specs2"                 %% "specs2-core"          % V.specs2     % Test
 }
