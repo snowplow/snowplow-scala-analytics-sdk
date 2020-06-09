@@ -15,21 +15,17 @@ import sbt._
 object Dependencies {
 
   object V {
-    val igluCore       = "0.5.1"
-    val cats           = "1.6.0"
-    val circe          = "0.11.1"
-    val aws            = "1.11.490"
+    val igluCore       = "1.0.0"
+    val cats           = "2.1.1"
+    val circe          = "0.13.0"
     // Scala (test only)
-    val specs2         = "4.4.1"
+    val specs2         = "4.8.0"
   }
 
   val igluCore         = "com.snowplowanalytics"      %% "iglu-core-circe"      % V.igluCore
   val cats             = "org.typelevel"              %% "cats-core"            % V.cats
   val circeParser      = "io.circe"                   %% "circe-parser"         % V.circe
   val circeGeneric     = "io.circe"                   %% "circe-generic"        % V.circe
-  val circeJava        = "io.circe"                   %% "circe-java8"          % V.circe
-  val s3               = "com.amazonaws"              % "aws-java-sdk-s3"       % V.aws
-  val dynamodb         = "com.amazonaws"              % "aws-java-sdk-dynamodb" % V.aws
   // Scala (test only)
-  val specs2           = "org.specs2"                 %% "specs2-core"          % V.specs2     % "test"
+  val specs2           = "org.specs2"                 %% "specs2-core"          % V.specs2     % Test
 }

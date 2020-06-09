@@ -17,15 +17,14 @@ import java.time.Instant
 import java.util.UUID
 
 // circe
-import io.circe.{Encoder, Json, JsonObject, ObjectEncoder, Decoder}
+import io.circe.{Encoder, Json, JsonObject, Decoder}
 import io.circe.Json.JString
 import io.circe.generic.semiauto._
 import io.circe.syntax._
-import io.circe.java8.time._
 
 // iglu
 import com.snowplowanalytics.iglu.core.SelfDescribingData
-import com.snowplowanalytics.iglu.core.circe.instances._
+import com.snowplowanalytics.iglu.core.circe.implicits._
 
 // This library
 import com.snowplowanalytics.snowplow.analytics.scalasdk.decode.{Parser, DecodeResult}
@@ -239,7 +238,7 @@ object Event {
   /**
     * Automatically derived Circe encoder
     */
-  implicit val jsonEncoder: ObjectEncoder[Event] = deriveEncoder[Event]
+  implicit val jsonEncoder: Encoder.AsObject[Event] = deriveEncoder[Event]
 
   implicit def eventDecoder: Decoder[Event] = deriveDecoder[Event]
 

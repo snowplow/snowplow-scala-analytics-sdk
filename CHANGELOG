@@ -1,3 +1,12 @@
+Version 2.0.0 (2020-06-09)
+--------------------------
+Remove run manifest (#102)
+Add Scala 2.13 support (#101)
+Bump sbt-scoverage to 1.6.1 (#104)
+Bump Scala to 2.12.11 (#100)
+Bump sbt to 1.3.10 (#99)
+Bump iglu-core-circe to 1.0.0 (#98)
+
 Version 1.0.0 (2019-11-06)
 --------------------------
 Make parsing errors type-safe (#75)
@@ -49,7 +58,7 @@ Add Scala 2.12 support (#41)
 Bump json4s to 3.2.11 (#46)
 Bump aws-java-sdk to 1.11.289 (#48)
 Bump Scala 2.11 to 2.11.12 (#47)
-Bump SBT to 1.1.1 (close #49)
+Bump SBT to 1.1.1 (#49)
 Extend copyright notice to 2018 (#51)
 Change se_value to Double (#52)
 

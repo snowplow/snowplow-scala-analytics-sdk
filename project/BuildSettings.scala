@@ -42,12 +42,8 @@ object BuildSettings {
       "-feature",
       "-unchecked",
       "-Ywarn-dead-code",
-      "-Ywarn-inaccessible",
-      "-Ywarn-nullary-override",
-      "-Ywarn-nullary-unit",
       "-Ywarn-numeric-widen",
-      "-Ywarn-value-discard",
-      "-Ypartial-unification"
+      "-Ywarn-value-discard"
     )
   )
 
