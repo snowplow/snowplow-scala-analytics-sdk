@@ -42,3 +42,8 @@ lazy val root = project.in(file("."))
       Dependencies.specs2
     )
   )
+
+lazy val benchmark = project
+  .in(file("benchmark"))
+  .dependsOn(root % "test->test")
+  .enablePlugins(JmhPlugin)
