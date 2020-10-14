@@ -193,14 +193,14 @@ case class Event(app_id:                   Option[String],
   /**
     * Returns the event as a map of keys to Circe JSON values, while dropping inventory fields
     */
-  def atomic: Map[String, Json] = toJsonMap - "contexts" - "unstruct_event" - "derived_contexts"
+  def atomic: Map[String, Json] = jsonMap - "contexts" - "unstruct_event" - "derived_contexts"
 
   /**
     * Returns the event as a list of key/Circe JSON value pairs.
-    * Unlike `toJsonMap` and `atomic`, these keys use the ordering of the canonical event model
+    * Unlike `jsonMap` and `atomic`, these keys use the ordering of the canonical event model
     */
   def ordered: List[(String, Option[Json])] =
-    Event.parser.knownKeys.map(key => (key.name, toJsonMap.get(key.name)))
+    Event.parser.knownKeys.map(key => (key.name, jsonMap.get(key.name)))
 
   /**
     * Returns a compound JSON field containing information about an event's latitude and longitude,
@@ -229,9 +229,9 @@ case class Event(app_id:                   Option[String],
     }
 
   /**
-    * Returns the event as a map of keys to Circe JSON values
+    * This event as a map of keys to Circe JSON values
     */
-  private def toJsonMap: Map[String, Json] = this.asJsonObject.toMap
+  private lazy val jsonMap: Map[String, Json] = this.asJsonObject.toMap
 }
 
 object Event {
