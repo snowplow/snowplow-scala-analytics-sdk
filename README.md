@@ -15,6 +15,16 @@ Use this SDK with **[Apache Spark][spark]**, **[AWS Lambda][lambda]**, **[Apache
 [Setup guide][setup-guide] and [User guide][user-guide] are available on the [Snowplow wiki][snowplow-wiki].
 The Scaladoc website of the project can be found [here][scala-doc].
 
+## Benchmarking
+
+This project comes with [sbt-jmh](https://github.com/ktoso/sbt-jmh).
+
+Benchmarks need to be added [here](./benchmark/src/test/scala/com.snowplowanalytics.snowplow.analytics.scalasdk/benchmark/).
+
+They can be run with `sbt "project benchmark" "+jmh:run -i 10 -wi 3 -f2 -t3"`.
+
+To get details about the parameters `jmh:run -h`.
+
 ## Copyright and license
 
 The Snowplow Scala Analytics SDK is copyright 2016-2019 Snowplow Analytics Ltd.
