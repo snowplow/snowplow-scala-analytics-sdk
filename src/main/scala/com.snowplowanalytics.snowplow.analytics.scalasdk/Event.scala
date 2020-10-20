@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2020 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -15,6 +15,7 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 // java
 import java.time.Instant
 import java.util.UUID
+import java.time.format.DateTimeFormatter
 
 // circe
 import io.circe.{Encoder, Json, JsonObject, Decoder}
@@ -30,6 +31,7 @@ import com.snowplowanalytics.iglu.core.circe.implicits._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.decode.{Parser, DecodeResult}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent.{Contexts, UnstructEvent}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent._
+import com.snowplowanalytics.snowplow.analytics.scalasdk.encode.TsvEncoder
 
 /**
   * Case class representing a canonical Snowplow event.
@@ -227,6 +229,9 @@ case class Event(app_id:                   Option[String],
     } else {
       this.asJson
     }
+
+  /** Create the TSV representation of this event. */
+  def toTsv: String = TsvEncoder.encode(this)
 
   /**
     * This event as a map of keys to Circe JSON values

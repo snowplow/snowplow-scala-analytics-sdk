@@ -23,7 +23,7 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.Event
 @State(Scope.Thread)
 @BenchmarkMode(Array(Mode.AverageTime, Mode.Throughput))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-class BenchmarkAnalyticsSDK {
+class OrderedBenchmark {
   @Benchmark
   def ordered(state : States.AtomicEventState): Unit = {
     state.event.ordered

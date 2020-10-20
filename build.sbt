@@ -39,7 +39,9 @@ lazy val root = project.in(file("."))
       Dependencies.circeParser,
       Dependencies.circeGeneric,
       // Scala (test only)
-      Dependencies.specs2
+      Dependencies.specs2,
+      Dependencies.specs2Scalacheck,
+      Dependencies.scalacheck
     )
   )
 

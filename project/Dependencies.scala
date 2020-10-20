@@ -20,6 +20,7 @@ object Dependencies {
     val circe          = "0.13.0"
     // Scala (test only)
     val specs2         = "4.8.0"
+    val scalaCheck     = "1.15.0"
   }
 
   val igluCore         = "com.snowplowanalytics"      %% "iglu-core-circe"      % V.igluCore
@@ -28,4 +29,6 @@ object Dependencies {
   val circeGeneric     = "io.circe"                   %% "circe-generic"        % V.circe
   // Scala (test only)
   val specs2           = "org.specs2"                 %% "specs2-core"          % V.specs2     % Test
+  val specs2Scalacheck = "org.specs2"                 %% "specs2-scalacheck"    % V.specs2     % Test
+  val scalacheck       = "org.scalacheck"             %% "scalacheck"           % V.scalaCheck % Test
 }

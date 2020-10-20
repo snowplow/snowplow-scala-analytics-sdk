@@ -95,9 +95,9 @@ class ParsingErrorSpec extends Specification { def is = s2"""
   }
 
   private def parseJson(jsonStr: String): Json =
-    parse(jsonStr).right.getOrElse(throw new RuntimeException("Failed to parse expected JSON."))
+    parse(jsonStr).getOrElse(throw new RuntimeException("Failed to parse expected JSON."))
 
   private def decodeJson[A: Decoder](json: Json): A = {
-    json.as[A].right.getOrElse(throw new RuntimeException("Failed to decode to ParsingError."))
+    json.as[A].getOrElse(throw new RuntimeException("Failed to decode to ParsingError."))
   }
 }
