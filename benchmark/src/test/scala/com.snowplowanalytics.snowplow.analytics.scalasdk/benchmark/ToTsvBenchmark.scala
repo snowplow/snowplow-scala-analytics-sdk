@@ -11,14 +11,14 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.Event
 @State(Scope.Thread)
 @BenchmarkMode(Array(Mode.AverageTime, Mode.Throughput))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-class BenchmarkAnalyticsSDK {
+class ToTsvBenchmark {
   @Benchmark
-  def ordered(state : States.AtomicEventState): Unit = {
-    state.event.ordered
+  def toTsv(state : ToTsvBenchmark.AtomicEventState): Unit = {
+    state.event.toTsv
   }
 }
 
-object States {
+object ToTsvBenchmark {
   @State(Scope.Benchmark)
   class AtomicEventState {
     var event: Event = _

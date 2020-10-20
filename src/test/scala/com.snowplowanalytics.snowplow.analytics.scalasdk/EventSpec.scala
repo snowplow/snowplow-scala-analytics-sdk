@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2020 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -34,6 +34,10 @@ import org.specs2.mutable.Specification
 // Iglu
 import com.snowplowanalytics.iglu.core.{SchemaKey, SchemaVer, SelfDescribingData}
 
+// ScalaCheck
+import org.specs2.ScalaCheck
+import org.scalacheck.Prop.forAll
+
 // This library
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError._
@@ -42,132 +46,8 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodin
 /**
   * Tests Event case class
   */
-class EventSpec extends Specification {
-
-  val unstructJson =
-    """{
-    "schema": "iglu:com.snowplowanalytics.snowplow/unstruct_event/jsonschema/1-0-0",
-    "data": {
-      "schema": "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1",
-      "data": {
-        "targetUrl": "http://www.example.com",
-        "elementClasses": ["foreground"],
-        "elementId": "exampleLink"
-      }
-    }
-  }"""
-
-  val contextsJson =
-    """{
-    "schema": "iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0",
-    "data": [
-      {
-        "schema": "iglu:org.schema/WebPage/jsonschema/1-0-0",
-        "data": {
-          "genre": "blog",
-          "inLanguage": "en-US",
-          "datePublished": "2014-11-06T00:00:00Z",
-          "author": "Fred Blundun",
-          "breadcrumb": [
-            "blog",
-            "releases"
-          ],
-          "keywords": [
-            "snowplow",
-            "javascript",
-            "tracker",
-            "event"
-          ]
-        }
-      },
-      {
-        "schema": "iglu:org.w3/PerformanceTiming/jsonschema/1-0-0",
-        "data": {
-          "navigationStart": 1415358089861,
-          "unloadEventStart": 1415358090270,
-          "unloadEventEnd": 1415358090287,
-          "redirectStart": 0,
-          "redirectEnd": 0,
-          "fetchStart": 1415358089870,
-          "domainLookupStart": 1415358090102,
-          "domainLookupEnd": 1415358090102,
-          "connectStart": 1415358090103,
-          "connectEnd": 1415358090183,
-          "requestStart": 1415358090183,
-          "responseStart": 1415358090265,
-          "responseEnd": 1415358090265,
-          "domLoading": 1415358090270,
-          "domInteractive": 1415358090886,
-          "domContentLoadedEventStart": 1415358090968,
-          "domContentLoadedEventEnd": 1415358091309,
-          "domComplete": 0,
-          "loadEventStart": 0,
-          "loadEventEnd": 0
-        }
-      }
-    ]
-  }"""
-
-  val contextsWithDuplicate = """{
-    "schema": "iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0",
-    "data": [
-      {
-        "schema": "iglu:org.schema/WebPage/jsonschema/1-0-0",
-        "data": {
-          "genre": "blog",
-          "inLanguage": "en-US",
-          "datePublished": "2014-11-06T00:00:00Z",
-          "author": "Fred Blundun",
-          "breadcrumb": [
-            "blog",
-            "releases"
-          ],
-          "keywords": [
-            "snowplow",
-            "javascript",
-            "tracker",
-            "event"
-          ]
-        }
-      },
-      {
-        "schema": "iglu:org.acme/context_one/jsonschema/1-0-0",
-        "data": {
-          "item": 1
-        }
-      },
-      {
-        "schema": "iglu:org.acme/context_one/jsonschema/1-0-1",
-        "data": {
-          "item": 2
-        }
-      }
-    ]
-  }"""
-
-  val derivedContextsJson =
-    """{
-    "schema": "iglu:com.snowplowanalytics.snowplow\/contexts\/jsonschema\/1-0-1",
-    "data": [
-      {
-        "schema": "iglu:com.snowplowanalytics.snowplow\/ua_parser_context\/jsonschema\/1-0-0",
-        "data": {
-          "useragentFamily": "IE",
-          "useragentMajor": "7",
-          "useragentMinor": "0",
-          "useragentPatch": null,
-          "useragentVersion": "IE 7.0",
-          "osFamily": "Windows XP",
-          "osMajor": null,
-          "osMinor": null,
-          "osPatch": null,
-          "osPatchMinor": null,
-          "osVersion": "Windows XP",
-          "deviceFamily": "Other"
-        }
-      }
-    ]
-  }"""
+class EventSpec extends Specification with ScalaCheck {
+  import EventSpec._
 
   "The Event parser" should {
     "successfully convert a tab-separated pageview event string to an Event instance and JSON" in {
@@ -3059,4 +2939,137 @@ class EventSpec extends Specification {
       SnowplowEvent.transformSchema(Data.UnstructEvent, "com.snowplowanalytics.self-desc", "schema", 1) mustEqual "unstruct_event_com_snowplowanalytics_self_desc_schema_1"
     }
   }
+
+  "Parsing the result of toTSV should produce the same event" in {
+    forAll(EventGen.event) { e =>
+      Event.parse(e.toTsv) mustEqual(Valid(e))
+    }
+  }
+}
+
+object EventSpec {
+  val unstructJson =
+    """{
+    "schema": "iglu:com.snowplowanalytics.snowplow/unstruct_event/jsonschema/1-0-0",
+    "data": {
+      "schema": "iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1",
+      "data": {
+        "targetUrl": "http://www.example.com",
+        "elementClasses": ["foreground"],
+        "elementId": "exampleLink"
+      }
+    }
+  }"""
+
+  val contextsJson =
+    """{
+    "schema": "iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0",
+    "data": [
+      {
+        "schema": "iglu:org.schema/WebPage/jsonschema/1-0-0",
+        "data": {
+          "genre": "blog",
+          "inLanguage": "en-US",
+          "datePublished": "2014-11-06T00:00:00Z",
+          "author": "Fred Blundun",
+          "breadcrumb": [
+            "blog",
+            "releases"
+          ],
+          "keywords": [
+            "snowplow",
+            "javascript",
+            "tracker",
+            "event"
+          ]
+        }
+      },
+      {
+        "schema": "iglu:org.w3/PerformanceTiming/jsonschema/1-0-0",
+        "data": {
+          "navigationStart": 1415358089861,
+          "unloadEventStart": 1415358090270,
+          "unloadEventEnd": 1415358090287,
+          "redirectStart": 0,
+          "redirectEnd": 0,
+          "fetchStart": 1415358089870,
+          "domainLookupStart": 1415358090102,
+          "domainLookupEnd": 1415358090102,
+          "connectStart": 1415358090103,
+          "connectEnd": 1415358090183,
+          "requestStart": 1415358090183,
+          "responseStart": 1415358090265,
+          "responseEnd": 1415358090265,
+          "domLoading": 1415358090270,
+          "domInteractive": 1415358090886,
+          "domContentLoadedEventStart": 1415358090968,
+          "domContentLoadedEventEnd": 1415358091309,
+          "domComplete": 0,
+          "loadEventStart": 0,
+          "loadEventEnd": 0
+        }
+      }
+    ]
+  }"""
+
+  val contextsWithDuplicate = """{
+    "schema": "iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0",
+    "data": [
+      {
+        "schema": "iglu:org.schema/WebPage/jsonschema/1-0-0",
+        "data": {
+          "genre": "blog",
+          "inLanguage": "en-US",
+          "datePublished": "2014-11-06T00:00:00Z",
+          "author": "Fred Blundun",
+          "breadcrumb": [
+            "blog",
+            "releases"
+          ],
+          "keywords": [
+            "snowplow",
+            "javascript",
+            "tracker",
+            "event"
+          ]
+        }
+      },
+      {
+        "schema": "iglu:org.acme/context_one/jsonschema/1-0-0",
+        "data": {
+          "item": 1
+        }
+      },
+      {
+        "schema": "iglu:org.acme/context_one/jsonschema/1-0-1",
+        "data": {
+          "item": 2
+        }
+      }
+    ]
+  }"""
+
+  val derivedContextsJson =
+    """{
+    "schema": "iglu:com.snowplowanalytics.snowplow\/contexts\/jsonschema\/1-0-1",
+    "data": [
+      {
+        "schema": "iglu:com.snowplowanalytics.snowplow\/ua_parser_context\/jsonschema\/1-0-0",
+        "data": {
+          "useragentFamily": "IE",
+          "useragentMajor": "7",
+          "useragentMinor": "0",
+          "useragentPatch": null,
+          "useragentVersion": "IE 7.0",
+          "osFamily": "Windows XP",
+          "osMajor": null,
+          "osMinor": null,
+          "osPatch": null,
+          "osPatchMinor": null,
+          "osVersion": "Windows XP",
+          "deviceFamily": "Other"
+        }
+      }
+    ]
+  }"""
 }
