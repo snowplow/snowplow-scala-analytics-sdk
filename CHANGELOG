@@ -1,3 +1,13 @@
+Version 2.1.0 (2020-11-09)
+--------------------------
+Update README to point to docs (close #110)
+Add scalafmt (#112)
+Migrate from Travis to GH actions (#113)
+Integrate Snyk (#111)
+Add toTSV method (#97)
+Replace toJsonMap function with a lazy value (#107)
+Add benchmarking module (#108)
+
 Version 2.0.1 (2020-06-10)
 --------------------------
 Fix Travis publish condition (#105)
