@@ -19,6 +19,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
 
 package object decode {
+
   /** Expected name of the field */
   type Key = Symbol
 

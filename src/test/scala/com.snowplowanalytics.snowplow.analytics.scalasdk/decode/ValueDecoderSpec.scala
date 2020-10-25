@@ -36,8 +36,8 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent.{Contexts
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 
 /**
-  * Tests ValueDecoder class
-  */
+ * Tests ValueDecoder class
+ */
 class ValueDecoderSpec extends Specification {
 
   "The ValueDecoder class" should {
@@ -51,35 +51,59 @@ class ValueDecoderSpec extends Specification {
     "parse Option[Int] values" in {
       ValueDecoder[Option[Int]].parse(Symbol("key"), "") mustEqual None.asRight
       ValueDecoder[Option[Int]].parse(Symbol("key"), "42") mustEqual Some(42).asRight
-      ValueDecoder[Option[Int]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"), "value", "Cannot parse key 'key with value value into integer").asLeft
+      ValueDecoder[Option[Int]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
+                                                                                     "value",
+                                                                                     "Cannot parse key 'key with value value into integer"
+      ).asLeft
     }
 
     "parse UUID values" in {
       ValueDecoder[UUID].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field 'key cannot be empty").asLeft
-      ValueDecoder[UUID].parse(Symbol("key"), "d2161fd1-ffed-41df-ac3e-a729012105f5") mustEqual UUID.fromString("d2161fd1-ffed-41df-ac3e-a729012105f5").asRight
-      ValueDecoder[UUID].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"), "value" ,"Cannot parse key 'key with value value into UUID").asLeft
+      ValueDecoder[UUID].parse(Symbol("key"), "d2161fd1-ffed-41df-ac3e-a729012105f5") mustEqual UUID
+        .fromString("d2161fd1-ffed-41df-ac3e-a729012105f5")
+        .asRight
+      ValueDecoder[UUID].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
+                                                                              "value",
+                                                                              "Cannot parse key 'key with value value into UUID"
+      ).asLeft
     }
 
     "parse Option[Boolean] values" in {
       ValueDecoder[Option[Boolean]].parse(Symbol("key"), "") mustEqual None.asRight
       ValueDecoder[Option[Boolean]].parse(Symbol("key"), "0") mustEqual Some(false).asRight
       ValueDecoder[Option[Boolean]].parse(Symbol("key"), "1") mustEqual Some(true).asRight
-      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"), "value", "Cannot parse key 'key with value value into boolean").asLeft
+      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "value") mustEqual InvalidValue(
+        Symbol("key"),
+        "value",
+        "Cannot parse key 'key with value value into boolean"
+      ).asLeft
     }
 
     "parse Option[Double] values" in {
       ValueDecoder[Option[Double]].parse(Symbol("key"), "") mustEqual None.asRight
       ValueDecoder[Option[Double]].parse(Symbol("key"), "42.5") mustEqual Some(42.5).asRight
-      ValueDecoder[Option[Double]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"), "value", "Cannot parse key 'key with value value into double").asLeft
+      ValueDecoder[Option[Double]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
+                                                                                        "value",
+                                                                                        "Cannot parse key 'key with value value into double"
+      ).asLeft
     }
 
     "parse Instant and Option[Instant] values" in {
       ValueDecoder[Instant].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field 'key cannot be empty").asLeft
       ValueDecoder[Instant].parse(Symbol("key"), "2013-11-26 00:03:57.885") mustEqual Instant.parse("2013-11-26T00:03:57.885Z").asRight
-      ValueDecoder[Instant].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"), "value", "Cannot parse key 'key with value value into datetime").asLeft
+      ValueDecoder[Instant].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
+                                                                                 "value",
+                                                                                 "Cannot parse key 'key with value value into datetime"
+      ).asLeft
       ValueDecoder[Option[Instant]].parse(Symbol("key"), "") mustEqual None.asRight
-      ValueDecoder[Option[Instant]].parse(Symbol("key"), "2013-11-26 00:03:57.885") mustEqual Some(Instant.parse("2013-11-26T00:03:57.885Z")).asRight
-      ValueDecoder[Option[Instant]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"), "value", "Cannot parse key 'key with value value into datetime").asLeft
+      ValueDecoder[Option[Instant]].parse(Symbol("key"), "2013-11-26 00:03:57.885") mustEqual Some(
+        Instant.parse("2013-11-26T00:03:57.885Z")
+      ).asRight
+      ValueDecoder[Option[Instant]].parse(Symbol("key"), "value") mustEqual InvalidValue(
+        Symbol("key"),
+        "value",
+        "Cannot parse key 'key with value value into datetime"
+      ).asLeft
     }
 
     "parse Contexts values" in {
@@ -154,7 +178,11 @@ class ValueDecoderSpec extends Specification {
           )
         )
       ).asRight
-      ValueDecoder[Contexts].parse(Symbol("key"), invalidPayloadContexts) mustEqual InvalidValue(Symbol("key"), invalidPayloadContexts, "Unknown payload: iglu:invalid/schema/jsonschema/1-0-0").asLeft
+      ValueDecoder[Contexts].parse(Symbol("key"), invalidPayloadContexts) mustEqual InvalidValue(
+        Symbol("key"),
+        invalidPayloadContexts,
+        "Unknown payload: iglu:invalid/schema/jsonschema/1-0-0"
+      ).asLeft
     }
 
     "parse UnstructEvent values" in {
@@ -200,7 +228,11 @@ class ValueDecoderSpec extends Specification {
           )
         )
       ).asRight
-      ValueDecoder[UnstructEvent].parse(Symbol("key"), invalidPayloadUnstruct) mustEqual InvalidValue(Symbol("key"), invalidPayloadUnstruct, "Unknown payload: iglu:invalid/schema/jsonschema/1-0-0").asLeft
+      ValueDecoder[UnstructEvent].parse(Symbol("key"), invalidPayloadUnstruct) mustEqual InvalidValue(
+        Symbol("key"),
+        invalidPayloadUnstruct,
+        "Unknown payload: iglu:invalid/schema/jsonschema/1-0-0"
+      ).asLeft
     }
   }
 }
