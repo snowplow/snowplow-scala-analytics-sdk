@@ -26,7 +26,6 @@ import com.typesafe.tools.mima.plugin.MimaPlugin
 // Scoverage plugin
 import scoverage.ScoverageKeys._
 
-import com.typesafe.sbt.sbtghpages.GhpagesPlugin.autoImport._
 import com.typesafe.sbt.site.SitePlugin.autoImport._
 import com.typesafe.sbt.site.SiteScaladocPlugin.autoImport._
 import com.typesafe.sbt.SbtGit.GitKeys.{gitBranch, gitRemoteRepo}
@@ -93,15 +92,8 @@ object BuildSettings {
     }
   )
 
-  val ghPagesSettings = Seq(
-    ghpagesPushSite := (ghpagesPushSite dependsOn makeSite).value,
-    ghpagesNoJekyll := false,
-    gitRemoteRepo := "git@github.com:snowplow/snowplow-scala-analytics-sdk.git",
-    gitBranch := Some("gh-pages"),
+  lazy val sbtSiteSettings = Seq(
     siteSubdirName in SiteScaladoc := s"${version.value}",
-    preprocessVars in Preprocess := Map("VERSION" -> version.value),
-    excludeFilter in ghpagesCleanSite := new FileFilter {
-      def accept(f: File) = true
-    }
+    preprocessVars in Preprocess := Map("VERSION" -> version.value)
   )
 }
