@@ -23,7 +23,7 @@ import cats.data.NonEmptyList
 import cats.syntax.either._
 
 // circe
-import io.circe.{Json, JsonObject, Encoder, Decoder}
+import io.circe.{Decoder, Encoder, Json, JsonObject}
 import io.circe.syntax._
 import io.circe.parser._
 import io.circe.generic.semiauto._
@@ -44,8 +44,8 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 
 /**
-  * Tests Event case class
-  */
+ * Tests Event case class
+ */
 class EventSpec extends Specification with ScalaCheck {
   import EventSpec._
 
@@ -1886,7 +1886,10 @@ class EventSpec extends Specification with ScalaCheck {
           InvalidValue(Symbol("txn_id"), "not_an_integer", "Cannot parse key 'txn_id with value not_an_integer into integer"),
           InvalidValue(Symbol("v_collector"), "", "Field 'v_collector cannot be empty"),
           InvalidValue(Symbol("geo_latitude"), "not_a_double", "Cannot parse key 'geo_latitude with value not_a_double into double"),
-          InvalidValue(Symbol("br_features_pdf"), "not_a_boolean", "Cannot parse key 'br_features_pdf with value not_a_boolean into boolean")
+          InvalidValue(Symbol("br_features_pdf"),
+                       "not_a_boolean",
+                       "Cannot parse key 'br_features_pdf with value not_a_boolean into boolean"
+          )
         )
       )
       event mustEqual Invalid(res)
@@ -2191,7 +2194,6 @@ class EventSpec extends Specification with ScalaCheck {
       val eventJson = parse(eventJsonStr).getOrElse(throw new RuntimeException("Error while converting to json"))
       eventJson.as[Event] must beRight(event)
     }
-
 
     "successfully decode encoded event which has contexts but has no unstruct_event" in {
       val event = Event(
@@ -2933,16 +2935,30 @@ class EventSpec extends Specification with ScalaCheck {
 
   "The transformSchema method" should {
     "successfully convert schemas into snake_case" in {
-      SnowplowEvent.transformSchema(Data.Contexts(Data.CustomContexts), "org.w3", "PerformanceTiming", 1) mustEqual "contexts_org_w3_performance_timing_1"
-      SnowplowEvent.transformSchema(Data.Contexts(Data.CustomContexts), SchemaKey("org.w3", "PerformanceTiming", "jsonschema", SchemaVer.Full(1, 0, 0))) mustEqual "contexts_org_w3_performance_timing_1"
-      SnowplowEvent.transformSchema(Data.Contexts(Data.CustomContexts), "com.snowplowanalytics.snowplow", "ua_parser_context", 1) mustEqual "contexts_com_snowplowanalytics_snowplow_ua_parser_context_1"
-      SnowplowEvent.transformSchema(Data.UnstructEvent, "com.snowplowanalytics.self-desc", "schema", 1) mustEqual "unstruct_event_com_snowplowanalytics_self_desc_schema_1"
+      SnowplowEvent.transformSchema(Data.Contexts(Data.CustomContexts),
+                                    "org.w3",
+                                    "PerformanceTiming",
+                                    1
+      ) mustEqual "contexts_org_w3_performance_timing_1"
+      SnowplowEvent.transformSchema(Data.Contexts(Data.CustomContexts),
+                                    SchemaKey("org.w3", "PerformanceTiming", "jsonschema", SchemaVer.Full(1, 0, 0))
+      ) mustEqual "contexts_org_w3_performance_timing_1"
+      SnowplowEvent.transformSchema(Data.Contexts(Data.CustomContexts),
+                                    "com.snowplowanalytics.snowplow",
+                                    "ua_parser_context",
+                                    1
+      ) mustEqual "contexts_com_snowplowanalytics_snowplow_ua_parser_context_1"
+      SnowplowEvent.transformSchema(Data.UnstructEvent,
+                                    "com.snowplowanalytics.self-desc",
+                                    "schema",
+                                    1
+      ) mustEqual "unstruct_event_com_snowplowanalytics_self_desc_schema_1"
     }
   }
 
   "Parsing the result of toTSV should produce the same event" in {
     forAll(EventGen.event) { e =>
-      Event.parse(e.toTsv) mustEqual(Valid(e))
+      Event.parse(e.toTsv) mustEqual (Valid(e))
     }
   }
 }

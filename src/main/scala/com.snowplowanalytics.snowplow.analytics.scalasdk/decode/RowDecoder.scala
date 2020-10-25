@@ -19,10 +19,10 @@ import cats.syntax.apply._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo.UnhandledRowDecodingError
 
 /**
-  * Type class to decode List of keys-value pairs into HList
-  * Keys derived from original class of HList,
-  * Values are actual TSV columns
-  */
+ * Type class to decode List of keys-value pairs into HList
+ * Keys derived from original class of HList,
+ * Values are actual TSV columns
+ */
 private[scalasdk] trait RowDecoder[L <: HList] extends Serializable {
   def apply(row: List[(Key, String)]): RowDecodeResult[L]
 }
@@ -43,16 +43,16 @@ private[scalasdk] object RowDecoder {
       case h :: t =>
         val hv: RowDecodeResult[H] = ValueDecoder[H].parse(h).toValidatedNel
         val tv: RowDecodeResult[T] = RowDecoder[T].apply(t)
-        (hv, tv).mapN { _ :: _ }
+        (hv, tv).mapN(_ :: _)
       case Nil => UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
     }
 
-  implicit def hnilFromRow: RowDecoder[HNil] = fromFunc {
-    case Nil => HNil.validNel
-    case rows => UnhandledRowDecodingError(s"No more values expected, following provided: ${rows.map(_._2).mkString(", ")}").invalidNel
-  }
+  implicit def hnilFromRow: RowDecoder[HNil] =
+    fromFunc {
+      case Nil => HNil.validNel
+      case rows => UnhandledRowDecodingError(s"No more values expected, following provided: ${rows.map(_._2).mkString(", ")}").invalidNel
+    }
 
   implicit def hconsFromRow[H: ValueDecoder, T <: HList: RowDecoder]: RowDecoder[H :: T] =
-    fromFunc { row => parse(row) }
+    fromFunc(row => parse(row))
 }
-

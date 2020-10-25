@@ -22,7 +22,8 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 import org.specs2.Specification
 
-class ParsingErrorSpec extends Specification { def is = s2"""
+class ParsingErrorSpec extends Specification {
+  def is = s2"""
   ParsingError encoder-decoder
     works correctly with NotTSV error $e1
     works correctly with FieldNumberMismatch error $e2
@@ -97,7 +98,6 @@ class ParsingErrorSpec extends Specification { def is = s2"""
   private def parseJson(jsonStr: String): Json =
     parse(jsonStr).getOrElse(throw new RuntimeException("Failed to parse expected JSON."))
 
-  private def decodeJson[A: Decoder](json: Json): A = {
+  private def decodeJson[A: Decoder](json: Json): A =
     json.as[A].getOrElse(throw new RuntimeException("Failed to decode to ParsingError."))
-  }
 }
