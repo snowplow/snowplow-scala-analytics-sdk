@@ -1,0 +1,61 @@
+name: Test and deploy
+
+on: push
+
+jobs:
+  test_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Run tests
+        run: sbt coverage +test
+
+      - name: Check Scala formatting
+        run: sbt scalafmtCheck
+
+      - name: Aggregate coverage data
+        run: sbt coverageAggregate
+
+      - name: Generate API website
+        if: startsWith(github.ref, 'refs/tags/')
+        run: sbt makeSite
+
+      - name: Publish website
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          project_version=$(sbt version -Dsbt.log.noformat=true | perl -ne 'print "$1\n" if /info.*(\d+\.\d+\.\d+[^\r\n]*)/' | tail -n 1 | tr -d '\n')
+          if [[ "${{ github.ref }}" = "refs/tags/${project_version}" ]]
+          then
+            echo Publishing Scaladoc
+            git fetch
+            git checkout gh-pages
+            cp -r target/site/* .
+            git config user.name "GitHub Actions"
+            git config user.email "<>"
+            git add index.html $project_version
+            git commit -m "Added Scaladoc for $project_version"
+            git push origin gh-pages
+          fi
+
+      - name: Publish to Bintray and Maven central
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          BINTRAY_USER: ${{ secrets.BINTRAY_SNOWPLOW_MAVEN_USER }}
+          BINTRAY_PASS: ${{ secrets.BINTRAY_SNOWPLOW_MAVEN_API_KEY }}
+          SONA_USER: ${{ secrets.SONA_USER }}
+          SONA_PASS: ${{ secrets.SONA_PASS }}
+        run: |
+          project_version=$(sbt version -Dsbt.log.noformat=true | perl -ne 'print "$1\n" if /info.*(\d+\.\d+\.\d+[^\r\n]*)/' | tail -n 1 | tr -d '\n')
+          if [[ "${{ github.ref }}" = "refs/tags/${project_version}" ]]
+          then
+            echo Publishing to Bintray and Maven Central
+            sbt +publish
+            sbt +bintraySyncMavenCentral
+          fi

@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Run Snyk to check for vulnerabilities
+    - name: Snyk monitor - Check for vulnerabilities
       uses: snyk/actions/scala@master
       with:
         command: monitor
