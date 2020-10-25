@@ -26,7 +26,6 @@ import com.typesafe.tools.mima.plugin.MimaPlugin
 // Scoverage plugin
 import scoverage.ScoverageKeys._
 
-import com.typesafe.sbt.sbtghpages.GhpagesPlugin.autoImport._
 import com.typesafe.sbt.site.SitePlugin.autoImport._
 import com.typesafe.sbt.site.SiteScaladocPlugin.autoImport._
 import com.typesafe.sbt.SbtGit.GitKeys.{gitBranch, gitRemoteRepo}
@@ -47,13 +46,15 @@ object BuildSettings {
     )
   )
 
-  lazy val publishSettings = bintraySettings ++ Seq(
-    publishMavenStyle := true,
-    publishArtifact := true,
-    publishArtifact in Test := false,
+  // Bintray publishing settings
+  lazy val bintrayPublishSettings = bintraySettings ++ Seq[Setting[_]](
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
     bintrayOrganization := Some("snowplow"),
-    bintrayRepository := "snowplow-maven",
+    bintrayRepository := "snowplow-maven"
+  )
+
+  // Maven Central publishing settings
+  lazy val mavenCentralExtras = Seq[Setting[_]](
     pomIncludeRepository := { _ => false },
     homepage := Some(url("http://snowplowanalytics.com")),
     scmInfo := Some(ScmInfo(url("https://github.com/snowplow/scala-scala-analytics-sdk"),
@@ -68,6 +69,8 @@ object BuildSettings {
         </developer>
       </developers>)
   )
+
+  lazy val publishSettings = bintrayPublishSettings ++ mavenCentralExtras
 
   // If new version introduces breaking changes,
   // clear-out mimaBinaryIssueFilters and mimaPreviousVersions.
@@ -93,15 +96,8 @@ object BuildSettings {
     }
   )
 
-  val ghPagesSettings = Seq(
-    ghpagesPushSite := (ghpagesPushSite dependsOn makeSite).value,
-    ghpagesNoJekyll := false,
-    gitRemoteRepo := "git@github.com:snowplow/snowplow-scala-analytics-sdk.git",
-    gitBranch := Some("gh-pages"),
+  lazy val sbtSiteSettings = Seq(
     siteSubdirName in SiteScaladoc := s"${version.value}",
-    preprocessVars in Preprocess := Map("VERSION" -> version.value),
-    excludeFilter in ghpagesCleanSite := new FileFilter {
-      def accept(f: File) = true
-    }
+    preprocessVars in Preprocess := Map("VERSION" -> version.value)
   )
 }
