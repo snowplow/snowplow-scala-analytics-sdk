@@ -15,10 +15,6 @@
 import sbt._
 import Keys._
 
-// Bintray plugin
-import bintray.BintrayPlugin._
-import bintray.BintrayKeys._
-
 // Mima plugin
 import com.typesafe.tools.mima.plugin.MimaKeys._
 import com.typesafe.tools.mima.plugin.MimaPlugin
@@ -47,13 +43,11 @@ object BuildSettings {
     )
   )
 
-  lazy val publishSettings = bintraySettings ++ Seq(
+  lazy val publishSettings = Seq(
     publishMavenStyle := true,
     publishArtifact := true,
     publishArtifact in Test := false,
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
-    bintrayOrganization := Some("snowplow"),
-    bintrayRepository := "snowplow-maven",
     pomIncludeRepository := { _ => false },
     homepage := Some(url("http://snowplowanalytics.com")),
     scmInfo := Some(ScmInfo(url("https://github.com/snowplow/scala-scala-analytics-sdk"),
