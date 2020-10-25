@@ -20,8 +20,8 @@ import com.snowplowanalytics.iglu.core.SchemaKey
 object Data {
 
   /**
-    * The type (contexts/derived_contexts/unstruct_event) and Iglu URI of a shredded type
-    */
+   * The type (contexts/derived_contexts/unstruct_event) and Iglu URI of a shredded type
+   */
   case class ShreddedType(shredProperty: ShredProperty, schemaKey: SchemaKey)
 
   /**
@@ -43,6 +43,7 @@ object Data {
    * Field types of enriched event that can be shredded (self-describing JSONs)
    */
   sealed trait ShredProperty {
+
     /**
      * Canonical field name
      */
