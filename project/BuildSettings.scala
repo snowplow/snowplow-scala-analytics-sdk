@@ -28,6 +28,8 @@ import com.typesafe.sbt.site.SiteScaladocPlugin.autoImport._
 import com.typesafe.sbt.SbtGit.GitKeys.{gitBranch, gitRemoteRepo}
 import com.typesafe.sbt.site.preprocess.PreprocessPlugin.autoImport._
 
+import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
+
 object BuildSettings {
 
   // Basic settings for our app
@@ -97,5 +99,10 @@ object BuildSettings {
     excludeFilter in ghpagesCleanSite := new FileFilter {
       def accept(f: File) = true
     }
+  )
+
+  lazy val formattingSettings = Seq(
+    scalafmtConfig    := file(".scalafmt.conf"),
+    scalafmtOnCompile := false
   )
 }
