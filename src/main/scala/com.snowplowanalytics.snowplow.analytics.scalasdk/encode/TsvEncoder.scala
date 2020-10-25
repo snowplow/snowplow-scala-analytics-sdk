@@ -25,7 +25,7 @@ object TsvEncoder {
   sealed trait FieldEncoder[T] {
     def encodeField(t: T): String
   }
-  
+
   implicit object StringEncoder extends FieldEncoder[String] {
     def encodeField(str: String) = str
   }
@@ -41,17 +41,17 @@ object TsvEncoder {
   implicit object UuidEncoder extends FieldEncoder[UUID] {
     def encodeField(uuid: UUID): String = uuid.toString
   }
-  
+
   implicit object IntEncoder extends FieldEncoder[Int] {
     def encodeField(int: Int): String = int.toString
   }
-  
+
   implicit object DoubleEncoder extends FieldEncoder[Double] {
     def encodeField(doub: Double): String = doub.toString
   }
-  
+
   implicit object BooleanEncoder extends FieldEncoder[Boolean] {
-    def encodeField(bool: Boolean): String = if(bool) "1" else "0"
+    def encodeField(bool: Boolean): String = if (bool) "1" else "0"
   }
 
   implicit object ContextsEncoder extends FieldEncoder[Contexts] {
@@ -61,15 +61,15 @@ object TsvEncoder {
       else
         ctxts.asJson.noSpaces
   }
-  
+
   implicit object UnstructEncoder extends FieldEncoder[UnstructEvent] {
     def encodeField(unstruct: UnstructEvent): String =
       if (unstruct.data.isDefined)
         unstruct.asJson.noSpaces
       else
         ""
-    }
-  
+  }
+
   def encode[A](a: A)(implicit ev: FieldEncoder[A]): String =
     ev.encodeField(a)
 

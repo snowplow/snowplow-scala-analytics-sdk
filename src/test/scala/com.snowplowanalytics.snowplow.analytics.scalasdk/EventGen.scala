@@ -12,11 +12,11 @@
  */
 package com.snowplowanalytics.snowplow.analytics.scalasdk
 
-import org.scalacheck.{Arbitrary, Gen} 
+import org.scalacheck.{Arbitrary, Gen}
 
 import io.circe._
 import io.circe.syntax._
-import io.circe.{Encoder, Decoder, HCursor, Json}
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser._
 
 import java.time.Instant
@@ -110,7 +110,7 @@ object EventGen {
       geo_city <- Gen.option(strGen(512, Gen.alphaChar))
       geo_zipcode <- Gen.option(strGen(6, Gen.alphaNumChar))
       geo_latitude <- Gen.option(Arbitrary.arbitrary[Double])
-      geo_longitude  <- Gen.option(Arbitrary.arbitrary[Double])
+      geo_longitude <- Gen.option(Arbitrary.arbitrary[Double])
       geo_region_name <- Gen.option(strGen(512, Gen.alphaChar))
       ip_isp <- Gen.option(strGen(512, Gen.alphaNumChar))
       ip_organization <- Gen.option(strGen(512, Gen.alphaNumChar))
@@ -146,9 +146,9 @@ object EventGen {
       se_property <- Gen.option(strGen(512, Gen.alphaNumChar))
       se_value <- Gen.option(Arbitrary.arbitrary[Double])
       unstruct_event = event match {
-        case Some("unstruct") => unstruct
-        case _ => UnstructEvent(None)
-      }
+                         case Some("unstruct") => unstruct
+                         case _ => UnstructEvent(None)
+                       }
       tr_orderid <- Gen.option(Gen.uuid).map(_.map(_.toString()))
       tr_affiliation <- Gen.option(strGen(512, Gen.alphaNumChar))
       tr_total <- Gen.option(Arbitrary.arbitrary[Double])
@@ -214,7 +214,7 @@ object EventGen {
       refr_dvce_tstamp <- Gen.option(instantGen)
       derived_contexts <- Gen.oneOf(derived_contexts, Contexts(Nil))
       domain_sessionid <- Gen.option(Gen.uuid).map(_.map(_.toString()))
-      derived_tstamp  <- Gen.option(instantGen)
+      derived_tstamp <- Gen.option(instantGen)
       event_vendor <- Gen.option(Gen.identifier)
       event_name <- Gen.option(Gen.identifier)
       event_format <- Gen.option("jsonschema")

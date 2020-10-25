@@ -27,6 +27,7 @@ lazy val root = project.in(file("."))
   .settings(BuildSettings.mimaSettings)
   .settings(BuildSettings.scoverageSettings)
   .settings(BuildSettings.sbtSiteSettings)
+  .settings(BuildSettings.formattingSettings)
   .settings(Seq(
     shellPrompt := { _ => name.value + " > " }
   ))
