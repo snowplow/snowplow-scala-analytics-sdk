@@ -65,12 +65,12 @@ private[decode] object ValueDecoder {
     fromFunc[Option[Int]] {
       case (key, value) =>
         if (value.isEmpty) none[Int].asRight
-        else try {
-          value.toInt.some.asRight
-        } catch {
-          case _: NumberFormatException =>
-            InvalidValue(key, value, s"Cannot parse key $key with value $value into integer").asLeft
-        }
+        else
+          try value.toInt.some.asRight
+          catch {
+            case _: NumberFormatException =>
+              InvalidValue(key, value, s"Cannot parse key $key with value $value into integer").asLeft
+          }
     }
 
   implicit final val uuidColumnDecoder: ValueDecoder[UUID] =
@@ -79,9 +79,8 @@ private[decode] object ValueDecoder {
         if (value.isEmpty)
           InvalidValue(key, value, s"Field $key cannot be empty").asLeft
         else
-          try {
-            UUID.fromString(value).asRight[RowDecodingErrorInfo]
-          } catch {
+          try UUID.fromString(value).asRight[RowDecodingErrorInfo]
+          catch {
             case _: IllegalArgumentException =>
               InvalidValue(key, value, s"Cannot parse key $key with value $value into UUID").asLeft
           }
@@ -93,8 +92,8 @@ private[decode] object ValueDecoder {
         value match {
           case "0" => false.some.asRight
           case "1" => true.some.asRight
-          case ""  => none[Boolean].asRight
-          case _   => InvalidValue(key, value, s"Cannot parse key $key with value $value into boolean").asLeft
+          case "" => none[Boolean].asRight
+          case _ => InvalidValue(key, value, s"Cannot parse key $key with value $value into boolean").asLeft
         }
     }
 
@@ -103,12 +102,12 @@ private[decode] object ValueDecoder {
       case (key, value) =>
         if (value.isEmpty)
           none[Double].asRight
-        else try {
-          value.toDouble.some.asRight
-        } catch {
-          case _: NumberFormatException =>
-            InvalidValue(key, value, s"Cannot parse key $key with value $value into double").asLeft
-        }
+        else
+          try value.toDouble.some.asRight
+          catch {
+            case _: NumberFormatException =>
+              InvalidValue(key, value, s"Cannot parse key $key with value $value into double").asLeft
+          }
     }
 
   implicit final val instantColumnDecoder: ValueDecoder[Instant] =
@@ -118,9 +117,8 @@ private[decode] object ValueDecoder {
           InvalidValue(key, value, s"Field $key cannot be empty").asLeft
         else {
           val tstamp = reformatTstamp(value)
-          try {
-            Instant.parse(tstamp).asRight
-          } catch {
+          try Instant.parse(tstamp).asRight
+          catch {
             case _: DateTimeParseException =>
               InvalidValue(key, value, s"Cannot parse key $key with value $value into datetime").asLeft
           }
@@ -130,17 +128,16 @@ private[decode] object ValueDecoder {
   implicit final val instantOptionColumnDecoder: ValueDecoder[Option[Instant]] =
     fromFunc[Option[Instant]] {
       case (key, value) =>
-      if (value.isEmpty)
-        none[Instant].asRight[RowDecodingErrorInfo]
-      else {
-        val tstamp = reformatTstamp(value)
-        try {
-          Instant.parse(tstamp).some.asRight
-        } catch {
-          case _: DateTimeParseException =>
-            InvalidValue(key, value, s"Cannot parse key $key with value $value into datetime").asLeft
+        if (value.isEmpty)
+          none[Instant].asRight[RowDecodingErrorInfo]
+        else {
+          val tstamp = reformatTstamp(value)
+          try Instant.parse(tstamp).some.asRight
+          catch {
+            case _: DateTimeParseException =>
+              InvalidValue(key, value, s"Cannot parse key $key with value $value into datetime").asLeft
+          }
         }
-      }
     }
 
   implicit final val unstructuredJson: ValueDecoder[UnstructEvent] =
@@ -180,11 +177,10 @@ private[decode] object ValueDecoder {
     }
 
   /**
-    * Converts a timestamp to an ISO-8601 format usable by Instant.parse()
-    *
-    * @param tstamp Timestamp of the form YYYY-MM-DD hh:mm:ss
-    * @return ISO-8601 timestamp
-    */
+   * Converts a timestamp to an ISO-8601 format usable by Instant.parse()
+   *
+   * @param tstamp Timestamp of the form YYYY-MM-DD hh:mm:ss
+   * @return ISO-8601 timestamp
+   */
   private def reformatTstamp(tstamp: String): String = tstamp.replaceAll(" ", "T") + "Z"
 }
-

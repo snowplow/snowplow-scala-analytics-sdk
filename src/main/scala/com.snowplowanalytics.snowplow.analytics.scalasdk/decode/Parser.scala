@@ -19,11 +19,12 @@ import cats.data.{NonEmptyList, Validated}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.{FieldNumberMismatch, NotTSV, RowDecodingError}
 
 private[scalasdk] trait Parser[A] extends Serializable {
+
   /** Heterogeneous TSV values */
   type HTSV <: HList
 
   /** List of field names defined on `A` */
-  def knownKeys: List[Key]    // TODO: should be a part of `RowDecoder`
+  def knownKeys: List[Key] // TODO: should be a part of `RowDecoder`
 
   /** Evidence allowing to transform TSV line into `HList` */
   protected def decoder: RowDecoder[HTSV]
@@ -33,39 +34,40 @@ private[scalasdk] trait Parser[A] extends Serializable {
 
   def parse(row: String): DecodeResult[A] = {
     val values = row.split("\t", -1)
-    if (values.length == 1) {
+    if (values.length == 1)
       Validated.Invalid(NotTSV)
-    }
-    else if (values.length != knownKeys.length) {
+    else if (values.length != knownKeys.length)
       Validated.Invalid(FieldNumberMismatch(values.length))
-    } else {
+    else {
       val zipped = knownKeys.zip(values)
       val decoded = decoder(zipped).leftMap(e => RowDecodingError(e))
-      decoded.map { decodedValue => generic.from(decodedValue) }
+      decoded.map(decodedValue => generic.from(decodedValue))
     }
   }
 }
 
 object Parser {
   sealed trait DeriveParser[A] {
+
     /**
-      * Get instance of parser after all evidences are given
-      * @tparam R full class representation with field names and types
-      * @tparam K evidence of field names
-      * @tparam L evidence of field types
-      */
-    def get[R <: HList, K <: HList, L <: HList](implicit lgen: LabelledGeneric.Aux[A, R],
-                                                keys: Keys.Aux[R, K],
-                                                gen: Generic.Aux[A, L],
-                                                toTraversableAux: ToTraversable.Aux[K, List, Symbol],
-                                                rowDecoder: RowDecoder[L]): Parser[A] = {
+     * Get instance of parser after all evidences are given
+     * @tparam R full class representation with field names and types
+     * @tparam K evidence of field names
+     * @tparam L evidence of field types
+     */
+    def get[R <: HList, K <: HList, L <: HList](
+      implicit lgen: LabelledGeneric.Aux[A, R],
+      keys: Keys.Aux[R, K],
+      gen: Generic.Aux[A, L],
+      toTraversableAux: ToTraversable.Aux[K, List, Symbol],
+      rowDecoder: RowDecoder[L]
+    ): Parser[A] =
       new Parser[A] {
         type HTSV = L
         val knownKeys: List[Symbol] = keys.apply.toList[Symbol]
         val decoder: RowDecoder[L] = rowDecoder
         val generic: Generic.Aux[A, L] = gen
       }
-    }
   }
 
   /** Derive a TSV parser for `A` */
