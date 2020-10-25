@@ -20,52 +20,57 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.decode.Key
 import com.snowplowanalytics.snowplow.analytics.scalasdk.decode.Key._
 
 /**
-  * Represents an error raised when parsing a TSV line.
-  */
+ * Represents an error raised when parsing a TSV line.
+ */
 sealed trait ParsingError extends Product with Serializable
 
 object ParsingError {
 
   /**
-    * Represents an error indicating a non-TSV line.
-    */
+   * Represents an error indicating a non-TSV line.
+   */
   final case object NotTSV extends ParsingError
 
   /**
-    * Represents an error indicating the number of actual fields is not equal
-    * to the number of expected fields.
-    * @param fieldCount The number of fields in the TSV line.
-    */
+   * Represents an error indicating the number of actual fields is not equal
+   * to the number of expected fields.
+   * @param fieldCount The number of fields in the TSV line.
+   */
   final case class FieldNumberMismatch(fieldCount: Int) extends ParsingError
 
   /**
-    * Represents an error raised when trying to decode the values in a line.
-    * @param errors A non-empty list of errors encountered when trying to decode the values.
-    */
+   * Represents an error raised when trying to decode the values in a line.
+   * @param errors A non-empty list of errors encountered when trying to decode the values.
+   */
   final case class RowDecodingError(errors: NonEmptyList[RowDecodingErrorInfo]) extends ParsingError
 
   /**
-    * Contains information about the reasons behind errors raised when trying to decode the values in a line.
-    */
+   * Contains information about the reasons behind errors raised when trying to decode the values in a line.
+   */
   sealed trait RowDecodingErrorInfo extends Product with Serializable
 
   object RowDecodingErrorInfo {
-    /**
-      * Represents cases where tha value in a field is not valid,
-      * e.g. an invalid timestamp, an invalid UUID, etc.
-      * @param key The name of the field.
-      * @param value The value of field.
-      * @param message The error message.
-      */
-    final case class InvalidValue(key: Key, value: String, message: String) extends RowDecodingErrorInfo
 
     /**
-      * Represents unhandled errors raised when trying to decode a line.
-      * For example, while parsing a list of tuples to [[HList]] in
-      * [[RowDecoder]], type checking should make it impossible to get more or less values
-      * than expected.
-      * @param message The error message.
-      */
+     * Represents cases where tha value in a field is not valid,
+     * e.g. an invalid timestamp, an invalid UUID, etc.
+     * @param key The name of the field.
+     * @param value The value of field.
+     * @param message The error message.
+     */
+    final case class InvalidValue(
+      key: Key,
+      value: String,
+      message: String
+    ) extends RowDecodingErrorInfo
+
+    /**
+     * Represents unhandled errors raised when trying to decode a line.
+     * For example, while parsing a list of tuples to [[HList]] in
+     * [[RowDecoder]], type checking should make it impossible to get more or less values
+     * than expected.
+     * @param message The error message.
+     */
     final case class UnhandledRowDecodingError(message: String) extends RowDecodingErrorInfo
 
     implicit val analyticsSdkRowDecodingErrorInfoCirceEncoder: Encoder[RowDecodingErrorInfo] =
@@ -89,19 +94,19 @@ object ParsingError {
         for {
           errorType <- cursor.downField("type").as[String]
           result <- errorType match {
-            case "InvalidValue" =>
-              for {
-                key <- cursor.downField("key").as[Key]
-                value <- cursor.downField("value").as[String]
-                message <- cursor.downField("message").as[String]
-              } yield InvalidValue(key, value, message)
+                      case "InvalidValue" =>
+                        for {
+                          key <- cursor.downField("key").as[Key]
+                          value <- cursor.downField("value").as[String]
+                          message <- cursor.downField("message").as[String]
+                        } yield InvalidValue(key, value, message)
 
-            case "UnhandledRowDecodingError" =>
-              cursor
-                .downField("message")
-                .as[String]
-                .map(UnhandledRowDecodingError)
-          }
+                      case "UnhandledRowDecodingError" =>
+                        cursor
+                          .downField("message")
+                          .as[String]
+                          .map(UnhandledRowDecodingError)
+                    }
         } yield result
       }
   }
@@ -122,28 +127,26 @@ object ParsingError {
         )
     }
 
-    implicit val analyticsSdkParsingErrorCirceDecoder: Decoder[ParsingError] =
-      Decoder.instance { cursor =>
-        for {
-          error <- cursor.downField("type").as[String]
-          result <- error match {
-            case "NotTSV" =>
-              NotTSV.asRight
-            case "FieldNumberMismatch" =>
-              cursor
-                .downField("fieldCount")
-                .as[Int]
-                .map(FieldNumberMismatch)
-            case "RowDecodingError" =>
-              cursor
-                .downField("errors")
-                .as[NonEmptyList[RowDecodingErrorInfo]]
-                .map(RowDecodingError)
-            case _ =>
-              DecodingFailure(
-                s"Error type $error is not an Analytics SDK Parsing Error.",
-                cursor.history).asLeft
-          }
-        } yield result
-      }
+  implicit val analyticsSdkParsingErrorCirceDecoder: Decoder[ParsingError] =
+    Decoder.instance { cursor =>
+      for {
+        error <- cursor.downField("type").as[String]
+        result <- error match {
+                    case "NotTSV" =>
+                      NotTSV.asRight
+                    case "FieldNumberMismatch" =>
+                      cursor
+                        .downField("fieldCount")
+                        .as[Int]
+                        .map(FieldNumberMismatch)
+                    case "RowDecodingError" =>
+                      cursor
+                        .downField("errors")
+                        .as[NonEmptyList[RowDecodingErrorInfo]]
+                        .map(RowDecodingError)
+                    case _ =>
+                      DecodingFailure(s"Error type $error is not an Analytics SDK Parsing Error.", cursor.history).asLeft
+                  }
+      } yield result
+    }
 }
