@@ -31,6 +31,8 @@ import com.typesafe.sbt.site.SiteScaladocPlugin.autoImport._
 import com.typesafe.sbt.SbtGit.GitKeys.{gitBranch, gitRemoteRepo}
 import com.typesafe.sbt.site.preprocess.PreprocessPlugin.autoImport._
 
+import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
+
 object BuildSettings {
 
   // Basic settings for our app
@@ -99,5 +101,10 @@ object BuildSettings {
   lazy val sbtSiteSettings = Seq(
     siteSubdirName in SiteScaladoc := s"${version.value}",
     preprocessVars in Preprocess := Map("VERSION" -> version.value)
+  )
+
+  lazy val formattingSettings = Seq(
+    scalafmtConfig    := file(".scalafmt.conf"),
+    scalafmtOnCompile := false
   )
 }
