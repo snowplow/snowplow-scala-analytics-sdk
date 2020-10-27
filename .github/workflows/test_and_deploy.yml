@@ -7,6 +7,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Deploy Github pages
+        if: .github/check_tag.sh ${{ github.ref }}
+        run: echo Good tag !
+
       - uses: actions/checkout@v2
 
       - name: Set up JDK 11
@@ -23,9 +27,9 @@ jobs:
       - name: Aggregate coverage data
         run: sbt coverageAggregate
 
-      - name: Deploy to maven
-        if: .github/check_tag.sh ${{ github.ref }}
-        run: sbt +publish
+      #- name: Deploy to maven
+      #  if: .github/check_tag.sh ${{ github.ref }}
+      #  run: sbt +publish
 
       - name: Deploy Github pages
         if: .github/check_tag.sh ${{ github.ref }}
