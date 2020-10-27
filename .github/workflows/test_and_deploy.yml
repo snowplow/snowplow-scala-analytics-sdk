@@ -7,9 +7,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy Github pages
-        if: .github/check_tag.sh ${{ github.ref }}
-        run: echo Good tag !
+      - name: Display Github ref
+        run: echo ${{ github.ref }}
 
       - uses: actions/checkout@v2
 
