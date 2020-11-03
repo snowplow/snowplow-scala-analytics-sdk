@@ -6,14 +6,15 @@
 
 ## Overview
 
-The **[Snowplow][snowplow]** Analytics SDK for Scala lets you work with **[Snowplow enriched events][enriched-events]** in your Scala event processing and data modeling jobs.
+**[Snowplow][snowplow]** Analytics SDK for Scala lets you work with **[Snowplow enriched events][enriched-events]** in your Scala event processing and data modeling jobs.
 
 Use this SDK with **[Apache Spark][spark]**, **[AWS Lambda][lambda]**, **[Apache Flink][flink]**, **[Scalding][scalding]**, **[Apache Samza][samza]** and other Scala/JVM-compatible data processing frameworks.
 
 ## Documentation
 
-[Setup guide][setup-guide] and [User guide][user-guide] are available on the [Snowplow wiki][snowplow-wiki].
-The Scaladoc website of the project can be found [here][scala-doc].
+Setup guide and user guide can be found on our [documentation website](https://docs.snowplowanalytics.com/docs/modeling-your-data/analytics-sdk/analytics-sdk-scala/).
+
+Scaladoc for this project can be found as Github pages [here][scala-doc].
 
 ## Benchmarking
 
@@ -47,14 +48,9 @@ limitations under the License.
 [release-image]: http://img.shields.io/badge/release-2.0.1-blue.svg?style=flat
 [releases]: https://github.com/snowplow/snowplow-scala-analytics-sdk/releases
 
-[setup-guide]: https://github.com/snowplow/snowplow/wiki/Scala-Analytics-SDK-setup
-[user-guide]: https://github.com/snowplow/snowplow/wiki/Scala-Analytics-SDK
-[snowplow-wiki]: https://github.com/snowplow/snowplow/wiki
 [scala-doc]: http://snowplow.github.io/snowplow-scala-analytics-sdk/
 
-[snowplow]: http://snowplowanalytics.com
-[enriched-events]: https://github.com/snowplow/snowplow/wiki/canonical-event-model
-[event-data-modeling]: http://snowplowanalytics.com/blog/2016/03/16/introduction-to-event-data-modeling/
+[enriched-events]: https://docs.snowplowanalytics.com/docs/understanding-your-pipeline/canonical-event/
 
 [spark]: http://spark.apache.org/
 [lambda]: https://aws.amazon.com/lambda/

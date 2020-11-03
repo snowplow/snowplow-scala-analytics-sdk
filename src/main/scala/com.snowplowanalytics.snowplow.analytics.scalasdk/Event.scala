@@ -36,7 +36,7 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.encode.TsvEncoder
 /**
  * Case class representing a canonical Snowplow event.
  *
- * @see https://github.com/snowplow/snowplow/wiki/canonical-event-model
+ * @see https://docs.snowplowanalytics.com/docs/understanding-your-pipeline/canonical-event/
  */
 // format: off
 case class Event(
