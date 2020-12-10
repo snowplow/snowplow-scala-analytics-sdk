@@ -38,6 +38,8 @@ lazy val root = project.in(file("."))
       Dependencies.cats,
       Dependencies.circeParser,
       Dependencies.circeGeneric,
+      Dependencies.magnolia,
+      Dependencies.reflect,
       // Scala (test only)
       Dependencies.specs2,
       Dependencies.specs2Scalacheck,

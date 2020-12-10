@@ -18,194 +18,102 @@ import java.util.UUID
 
 import io.circe.syntax._
 
+import magnolia._
+
+import scala.language.experimental.macros
+
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.Event
 
+
+import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent.Contexts
+import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent.UnstructEvent
+
+import Show.ops._
+
 object TsvEncoder {
-  sealed trait FieldEncoder[T] {
-    def encodeField(t: T): String
+
+  def encode(event: Event): String =
+    Show.ops.show(event)
+}
+
+trait Show[A] {
+  def show(a: A): String
+}
+
+object Show {
+
+  def apply[A](implicit sh: Show[A]): Show[A] = sh
+
+  object ops {
+    def show[A: Show](a: A) = Show[A].show(a)
+
+    implicit class ShowOps[A: Show](a: A) {
+      def show = Show[A].show(a)
+    }
   }
 
-  implicit object StringEncoder extends FieldEncoder[String] {
-    def encodeField(str: String) = str
-  }
+  implicit val intCanShow: Show[Int] =
+    i => i.toString
 
-  implicit object InstantEncoder extends FieldEncoder[Instant] {
-    def encodeField(inst: Instant): String =
+  implicit val stringCanShow: Show[String] =
+    s => s
+
+  implicit val doubleCanShow: Show[Double] =
+    d => d.toString
+
+  implicit val booleanCanShow: Show[Boolean] =
+    b => if (b) "1" else "0"
+  
+  implicit val uuidCanShow: Show[UUID] =
+    u => u.toString
+  
+    implicit val optUuidCanShow: Show[Option[UUID]] =
+    optU => optU match {
+      case Some(u) => u.show
+      case None => ""
+    } 
+
+  implicit val instantCanShow: Show[Instant] =
+    inst => 
       DateTimeFormatter.ISO_INSTANT
         .format(inst)
         .replace("T", " ")
         .dropRight(1) // remove trailing 'Z'
-  }
 
-  implicit object UuidEncoder extends FieldEncoder[UUID] {
-    def encodeField(uuid: UUID): String = uuid.toString
-  }
+   implicit val contextsCanShow: Show[Contexts] =
+     ctxts => 
+       if (ctxts.data.isEmpty)
+         ""
+       else
+         ctxts.asJson.noSpaces
 
-  implicit object IntEncoder extends FieldEncoder[Int] {
-    def encodeField(int: Int): String = int.toString
-  }
+   implicit val unstructCanShow: Show[UnstructEvent] =
+     unstruct =>
+       if (unstruct.data.isDefined)
+         unstruct.asJson.noSpaces
+       else
+         ""
+  
+  type Typeclass[T] = Show[T] // required otherwise does not compile
 
-  implicit object DoubleEncoder extends FieldEncoder[Double] {
-    def encodeField(doub: Double): String = doub.toString
-  }
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
+    new Show[T] {
+      def show(a: T): String = {
+        caseClass.parameters.map { p =>
+          s"${p.typeclass.show(p.dereference(a))}"
+        }.mkString("\t")
+      }
+    }
 
-  implicit object BooleanEncoder extends FieldEncoder[Boolean] {
-    def encodeField(bool: Boolean): String = if (bool) "1" else "0"
-  }
+  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
+    new Show[T] {
+      def show(a: T): String = {
+        sealedTrait.dispatch(a) { subtype =>
+          subtype.typeclass.show(subtype.cast(a))
+        }
+      }
+    }
 
-  implicit object ContextsEncoder extends FieldEncoder[Contexts] {
-    def encodeField(ctxts: Contexts): String =
-      if (ctxts.data.isEmpty)
-        ""
-      else
-        ctxts.asJson.noSpaces
-  }
-
-  implicit object UnstructEncoder extends FieldEncoder[UnstructEvent] {
-    def encodeField(unstruct: UnstructEvent): String =
-      if (unstruct.data.isDefined)
-        unstruct.asJson.noSpaces
-      else
-        ""
-  }
-
-  def encode[A](a: A)(implicit ev: FieldEncoder[A]): String =
-    ev.encodeField(a)
-
-  def encode[A](optA: Option[A])(implicit ev: FieldEncoder[A]): String =
-    optA.map(a => ev.encodeField(a)).getOrElse("")
-
-  def encode(event: Event): String =
-    encode(event.app_id) + "\t" +
-      encode(event.platform) + "\t" +
-      encode(event.etl_tstamp) + "\t" +
-      encode(event.collector_tstamp) + "\t" +
-      encode(event.dvce_created_tstamp) + "\t" +
-      encode(event.event) + "\t" +
-      encode(event.event_id) + "\t" +
-      encode(event.txn_id) + "\t" +
-      encode(event.name_tracker) + "\t" +
-      encode(event.v_tracker) + "\t" +
-      encode(event.v_collector) + "\t" +
-      encode(event.v_etl) + "\t" +
-      encode(event.user_id) + "\t" +
-      encode(event.user_ipaddress) + "\t" +
-      encode(event.user_fingerprint) + "\t" +
-      encode(event.domain_userid) + "\t" +
-      encode(event.domain_sessionidx) + "\t" +
-      encode(event.network_userid) + "\t" +
-      encode(event.geo_country) + "\t" +
-      encode(event.geo_region) + "\t" +
-      encode(event.geo_city) + "\t" +
-      encode(event.geo_zipcode) + "\t" +
-      encode(event.geo_latitude) + "\t" +
-      encode(event.geo_longitude) + "\t" +
-      encode(event.geo_region_name) + "\t" +
-      encode(event.ip_isp) + "\t" +
-      encode(event.ip_organization) + "\t" +
-      encode(event.ip_domain) + "\t" +
-      encode(event.ip_netspeed) + "\t" +
-      encode(event.page_url) + "\t" +
-      encode(event.page_title) + "\t" +
-      encode(event.page_referrer) + "\t" +
-      encode(event.page_urlscheme) + "\t" +
-      encode(event.page_urlhost) + "\t" +
-      encode(event.page_urlport) + "\t" +
-      encode(event.page_urlpath) + "\t" +
-      encode(event.page_urlquery) + "\t" +
-      encode(event.page_urlfragment) + "\t" +
-      encode(event.refr_urlscheme) + "\t" +
-      encode(event.refr_urlhost) + "\t" +
-      encode(event.refr_urlport) + "\t" +
-      encode(event.refr_urlpath) + "\t" +
-      encode(event.refr_urlquery) + "\t" +
-      encode(event.refr_urlfragment) + "\t" +
-      encode(event.refr_medium) + "\t" +
-      encode(event.refr_source) + "\t" +
-      encode(event.refr_term) + "\t" +
-      encode(event.mkt_medium) + "\t" +
-      encode(event.mkt_source) + "\t" +
-      encode(event.mkt_term) + "\t" +
-      encode(event.mkt_content) + "\t" +
-      encode(event.mkt_campaign) + "\t" +
-      encode(event.contexts) + "\t" +
-      encode(event.se_category) + "\t" +
-      encode(event.se_action) + "\t" +
-      encode(event.se_label) + "\t" +
-      encode(event.se_property) + "\t" +
-      encode(event.se_value) + "\t" +
-      encode(event.unstruct_event) + "\t" +
-      encode(event.tr_orderid) + "\t" +
-      encode(event.tr_affiliation) + "\t" +
-      encode(event.tr_total) + "\t" +
-      encode(event.tr_tax) + "\t" +
-      encode(event.tr_shipping) + "\t" +
-      encode(event.tr_city) + "\t" +
-      encode(event.tr_state) + "\t" +
-      encode(event.tr_country) + "\t" +
-      encode(event.ti_orderid) + "\t" +
-      encode(event.ti_sku) + "\t" +
-      encode(event.ti_name) + "\t" +
-      encode(event.ti_category) + "\t" +
-      encode(event.ti_price) + "\t" +
-      encode(event.ti_quantity) + "\t" +
-      encode(event.pp_xoffset_min) + "\t" +
-      encode(event.pp_xoffset_max) + "\t" +
-      encode(event.pp_yoffset_min) + "\t" +
-      encode(event.pp_yoffset_max) + "\t" +
-      encode(event.useragent) + "\t" +
-      encode(event.br_name) + "\t" +
-      encode(event.br_family) + "\t" +
-      encode(event.br_version) + "\t" +
-      encode(event.br_type) + "\t" +
-      encode(event.br_renderengine) + "\t" +
-      encode(event.br_lang) + "\t" +
-      encode(event.br_features_pdf) + "\t" +
-      encode(event.br_features_flash) + "\t" +
-      encode(event.br_features_java) + "\t" +
-      encode(event.br_features_director) + "\t" +
-      encode(event.br_features_quicktime) + "\t" +
-      encode(event.br_features_realplayer) + "\t" +
-      encode(event.br_features_windowsmedia) + "\t" +
-      encode(event.br_features_gears) + "\t" +
-      encode(event.br_features_silverlight) + "\t" +
-      encode(event.br_cookies) + "\t" +
-      encode(event.br_colordepth) + "\t" +
-      encode(event.br_viewwidth) + "\t" +
-      encode(event.br_viewheight) + "\t" +
-      encode(event.os_name) + "\t" +
-      encode(event.os_family) + "\t" +
-      encode(event.os_manufacturer) + "\t" +
-      encode(event.os_timezone) + "\t" +
-      encode(event.dvce_type) + "\t" +
-      encode(event.dvce_ismobile) + "\t" +
-      encode(event.dvce_screenwidth) + "\t" +
-      encode(event.dvce_screenheight) + "\t" +
-      encode(event.doc_charset) + "\t" +
-      encode(event.doc_width) + "\t" +
-      encode(event.doc_height) + "\t" +
-      encode(event.tr_currency) + "\t" +
-      encode(event.tr_total_base) + "\t" +
-      encode(event.tr_tax_base) + "\t" +
-      encode(event.tr_shipping_base) + "\t" +
-      encode(event.ti_currency) + "\t" +
-      encode(event.ti_price_base) + "\t" +
-      encode(event.base_currency) + "\t" +
-      encode(event.geo_timezone) + "\t" +
-      encode(event.mkt_clickid) + "\t" +
-      encode(event.mkt_network) + "\t" +
-      encode(event.etl_tags) + "\t" +
-      encode(event.dvce_sent_tstamp) + "\t" +
-      encode(event.refr_domain_userid) + "\t" +
-      encode(event.refr_dvce_tstamp) + "\t" +
-      encode(event.derived_contexts) + "\t" +
-      encode(event.domain_sessionid) + "\t" +
-      encode(event.derived_tstamp) + "\t" +
-      encode(event.event_vendor) + "\t" +
-      encode(event.event_name) + "\t" +
-      encode(event.event_format) + "\t" +
-      encode(event.event_version) + "\t" +
-      encode(event.event_fingerprint) + "\t" +
-      encode(event.true_tstamp)
+  implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 }
