@@ -11,15 +11,16 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 
-lazy val root = project.in(file("."))
-  .settings(Seq[Setting[_]](
-    name               := "snowplow-scala-analytics-sdk",
-    organization       := "com.snowplowanalytics",
-    version            := "2.1.0",
-    description        := "Scala analytics SDK for Snowplow",
-    scalaVersion       := "2.13.2",
-    crossScalaVersions := Seq("2.12.11", "2.13.2")
-  ))
+lazy val root = project
+  .in(file("."))
+  .settings(
+    Seq[Setting[_]](
+      name := "snowplow-scala-analytics-sdk",
+      organization := "com.snowplowanalytics",
+      version := "2.1.0",
+      description := "Scala analytics SDK for Snowplow"
+    )
+  )
   .enablePlugins(SiteScaladocPlugin)
   .enablePlugins(PreprocessPlugin)
   .settings(BuildSettings.buildSettings)
@@ -28,9 +29,11 @@ lazy val root = project.in(file("."))
   .settings(BuildSettings.scoverageSettings)
   .settings(BuildSettings.sbtSiteSettings)
   .settings(BuildSettings.formattingSettings)
-  .settings(Seq(
-    shellPrompt := { _ => name.value + " > " }
-  ))
+  .settings(
+    Seq(
+      shellPrompt := { _ => name.value + " > " }
+    )
+  )
   .settings(
     libraryDependencies ++= Seq(
       // Scala
@@ -38,10 +41,14 @@ lazy val root = project.in(file("."))
       Dependencies.cats,
       Dependencies.circeParser,
       Dependencies.circeGeneric,
+      Dependencies.fs2,
+      Dependencies.fs2Io,
       // Scala (test only)
       Dependencies.specs2,
       Dependencies.specs2Scalacheck,
-      Dependencies.scalacheck
+      Dependencies.scalacheck,
+      Dependencies.specs2CE,
+      Dependencies.specs2Cats
     )
   )
 
