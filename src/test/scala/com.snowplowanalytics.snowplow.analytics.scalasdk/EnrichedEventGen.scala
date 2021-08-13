@@ -175,12 +175,11 @@ object EnrichedEventGen extends CatsIO {
     for {
       counter <- Ref.of[IO, Int](0)
       dir <- Blocker[IO].use(b => createDirectory[IO](b, dir))
-      filename = counter.updateAndGet(_ + 1).map(i => Paths.get(s"${dir.toAbsolutePath}/enriched_events.${i / 10000}.tsv"))
+      filename = counter.updateAndGet(_ + 1).map(i => Paths.get(s"${dir.toAbsolutePath}/enriched_events.$i.tsv"))
       _ <- Blocker[IO].use { b =>
              val result =
                for {
-                 eventChunk <-
-                   eventStream.take(cardinality).map(_.toTsv).intersperse("\n").groupWithin((cardinality * 2).toInt, 300.seconds)
+                 eventChunk <- eventStream.take(cardinality).map(_.toTsv).intersperse("\n").groupWithin(20000, 30.seconds)
                  fileName <- Stream.eval(filename)
                  _ <- Stream.eval(IO(if (!Files.exists(fileName.getParent)) Files.createDirectories(fileName.getParent)))
                  _ <- Stream.chunk(Chunk.bytes(eventChunk.toList.mkString("").getBytes())).through(writeAll[IO](fileName, b))
