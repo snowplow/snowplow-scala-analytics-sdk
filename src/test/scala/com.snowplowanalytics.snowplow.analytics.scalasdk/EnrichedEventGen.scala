@@ -15,8 +15,11 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 import cats.effect.concurrent.Ref
 import cats.effect.{Blocker, IO}
 import cats.effect.testing.specs2.CatsIO
+import com.snowplowanalytics.iglu.core.{SchemaKey, SchemaVer, SelfDescribingData}
 import fs2.{Chunk, Stream}
 import fs2.io.file.{createDirectory, writeAll}
+import io.circe.Json
+import io.circe.syntax.EncoderOps
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.nio.file.{Files, Path, Paths}
@@ -58,6 +61,10 @@ object EnrichedEventGen extends CatsIO {
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/601.1.56 (KHTML, like Gecko) Version/9.0 Safari/601.1.56"
   private val EventFormat = "jsonschema"
   private val EventVersion = "1-0-0"
+  private val WebPageSchemaKey = SchemaKey("com.snowplowanalytics.snowplow", "web_page", "jsonschema", SchemaVer.Full(1, 0, 0))
+  private val GeoLocationSchemaKey =
+    SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1, 0, 0))
+  private val UaParserSchemaKey = SchemaKey("com.snowplowanalytics.snowplow", "ua_parser_context", "jsonschema", SchemaVer.Full(1, 0, 0))
 
   implicit val instantArbitrary: Arbitrary[Instant] =
     Arbitrary {
@@ -98,17 +105,60 @@ object EnrichedEventGen extends CatsIO {
   private val urlPathGen: Gen[String] = strGen(15, Gen.alphaNumChar)
 
   private val pageTitleGen: Gen[String] = for {
-    one <- strGen(1, Gen.alphaNumChar)
-    two <- strGen(2, Gen.alphaNumChar)
-    three <- strGen(3, Gen.alphaNumChar)
-    four <- strGen(4, Gen.alphaNumChar)
+    one <- strGen(5, Gen.alphaNumChar)
+    two <- strGen(5, Gen.alphaNumChar)
+    three <- strGen(5, Gen.alphaNumChar)
+    four <- strGen(5, Gen.alphaNumChar)
     five <- strGen(5, Gen.alphaNumChar)
   } yield Random.shuffle(List(one, two, three, four, five)).mkString(" ")
+
+  private val useragentFamilyGen: Gen[String] = Gen.oneOf("Chrome", "Firefox", "Safari")
+  private val osFamilyGen: Gen[String] = Gen.oneOf("Linux", "Windows", "Mac OS X")
+  private val deviceFamilyGen: Gen[String] = Gen.oneOf("Mac", "iPhone", "Generic Feature Phone")
+
+  private val webPageContextGen: Gen[SelfDescribingData[Json]] = for {
+    id <- Gen.uuid
+    data = Map("id" -> id.toString).asJson
+    selfDesc = SelfDescribingData[Json](WebPageSchemaKey, data)
+  } yield selfDesc
+
+  private val geoLocationContextGen: Gen[SelfDescribingData[Json]] = for {
+    lat <- Gen.chooseNum[Double](-90, 90)
+    lon <- Gen.chooseNum[Double](-180, 180)
+    data = Map("latitude" -> lat, "longitude" -> lon).asJson
+    selfDesc = SelfDescribingData[Json](GeoLocationSchemaKey, data)
+  } yield selfDesc
+
+  private val uaParserContextGen: Gen[SelfDescribingData[Json]] = for {
+    uaFamily <- useragentFamilyGen
+    uaMaj <- Gen.chooseNum[Int](0, 10)
+    uaMin <- Gen.chooseNum[Int](0, 10)
+    osFamily <- osFamilyGen
+    dFamily <- deviceFamilyGen
+    data = Map("useragentFamily" -> uaFamily,
+               "useragentMajor" -> uaMaj.toString,
+               "useragentMinor" -> uaMin.toString,
+               "osFamily" -> osFamily,
+               "deviceFamily" -> dFamily
+           ).asJson
+    selfDesc = SelfDescribingData[Json](UaParserSchemaKey, data)
+  } yield selfDesc
+
+  private val eventContextGen: Gen[Contexts] = for {
+    wp <- webPageContextGen
+    gl <- geoLocationContextGen
+    n <- Gen.chooseNum(0, 2)
+  } yield Contexts(Random.shuffle(List(wp, gl)).take(n))
+
+  private val derivedContextGen: Gen[Contexts] = for {
+    up <- uaParserContextGen
+    n <- Gen.chooseNum(0, 1)
+  } yield Contexts(Random.shuffle(List(up)).take(n))
 
   private def strGen(n: Int, gen: Gen[Char]): Gen[String] =
     Gen.chooseNum(1, n).flatMap(len => Gen.listOfN(len, gen).map(_.mkString))
 
-  val pageView: Gen[Event] = for {
+  val pageViewGen: Gen[Event] = for {
     id <- Gen.uuid
     collectorTstamp <- instantGen
     etlTstamp <- instantGen
@@ -129,7 +179,9 @@ object EnrichedEventGen extends CatsIO {
     refrUrlTld <- urlTldGen
     refrUrlHost = s"$refrUrlPrefix$RefrUrlDomain$refrUrlTld"
     refrUrlPath <- urlPathGen
+    contexts <- eventContextGen
     pageReferrer = s"$refrUrlScheme://$refrUrlHost/$refrUrlPath"
+    derivedContexts <- derivedContextGen
     domainSessionId <- Gen.uuid
     derivedTstamp <- instantGen
   } yield emptyEvent(id, collectorTstamp, VCollector, VEtl).copy(
@@ -158,7 +210,9 @@ object EnrichedEventGen extends CatsIO {
     mkt_medium = Some(MktMedium),
     mkt_source = Some(MktSource),
     mkt_campaign = Some(MktCampaign),
+    contexts = contexts,
     useragent = Some(Useragent),
+    derived_contexts = derivedContexts,
     domain_sessionid = Some(domainSessionId.toString),
     derived_tstamp = Some(derivedTstamp),
     event_vendor = Some("com.snowplowanalytics.snowplow"),
@@ -167,7 +221,7 @@ object EnrichedEventGen extends CatsIO {
     event_version = Some(EventVersion)
   )
 
-  val eventStream: Stream[IO, Event] = Stream.repeatEval(IO(pageView.sample)).collect {
+  val eventStream: Stream[IO, Event] = Stream.repeatEval(IO(pageViewGen.sample)).collect {
     case Some(x) => x
   }
 
