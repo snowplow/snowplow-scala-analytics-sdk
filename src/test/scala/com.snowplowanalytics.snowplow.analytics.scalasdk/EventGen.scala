@@ -14,21 +14,14 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 
 import org.scalacheck.{Arbitrary, Gen}
 
-import cats.effect.{Blocker, IO}
-import cats.effect.concurrent.Ref
 import io.circe._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser._
-import fs2.{Chunk, Stream}
-import fs2.io.file.{createDirectory, writeAll}
 
-import java.nio.file.{Files, Path, Paths}
 import java.time.Instant
 
-import cats.effect.testing.specs2.CatsIO
-
-object EventGen extends CatsIO {
+object EventGen {
   import SnowplowEvent._
 
   def strGen(n: Int, gen: Gen[Char]): Gen[String] =
@@ -361,25 +354,4 @@ object EventGen extends CatsIO {
       event_fingerprint,
       true_tstamp
     )
-
-  val eventStream: Stream[IO, Event] = Stream.repeatEval(IO(event.sample)).collect {
-    case Some(x) => x
-  }
-
-  def write(dir: Path, cardinality: Long): IO[Unit] =
-    for {
-      counter <- Ref.of[IO, Int](0)
-      dir <- Blocker[IO].use(b => createDirectory[IO](b, dir))
-      filename = counter.updateAndGet(_ + 1).map(i => Paths.get(s"${dir.toAbsolutePath}/${i / 10000}/enriched_events.$i.tsv"))
-      _ <- Blocker[IO].use { b =>
-             val result =
-               for {
-                 event <- eventStream.take(cardinality)
-                 fileName <- Stream.eval(filename)
-                 _ = if (!Files.exists(fileName.getParent)) Files.createDirectories(fileName.getParent)
-                 _ <- Stream.chunk(Chunk.bytes(event.toTsv.getBytes())).through(writeAll[IO](fileName, b))
-               } yield ()
-             result.compile.drain
-           }
-    } yield ()
 }

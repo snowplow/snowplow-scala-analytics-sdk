@@ -60,11 +60,21 @@ object EnrichedEventGen extends CatsIO {
   private val Useragent =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/601.1.56 (KHTML, like Gecko) Version/9.0 Safari/601.1.56"
   private val EventFormat = "jsonschema"
-  private val EventVersion = "1-0-0"
   private val WebPageSchemaKey = SchemaKey("com.snowplowanalytics.snowplow", "web_page", "jsonschema", SchemaVer.Full(1, 0, 0))
   private val GeoLocationSchemaKey =
     SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1, 0, 0))
   private val UaParserSchemaKey = SchemaKey("com.snowplowanalytics.snowplow", "ua_parser_context", "jsonschema", SchemaVer.Full(1, 0, 0))
+  private val LinkClickSchemaKey = SchemaKey("com.snowplowanalytics.snowplow", "link_click", "jsonschema", SchemaVer.Full(1, 0, 1))
+
+  private val LoremIpsum =
+    """Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      | Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure
+      | dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+      | proident, sunt in culpa qui officia deserunt mollit anim id est laborum.""".stripMargin
+      .replaceAll("""[\p{Punct}]""", "")
+      .toLowerCase
+      .split(" ")
+      .toList
 
   implicit val instantArbitrary: Arbitrary[Instant] =
     Arbitrary {
@@ -104,13 +114,7 @@ object EnrichedEventGen extends CatsIO {
   private val urlTldGen: Gen[String] = Gen.oneOf(".com", ".net", ".co.uk", ".bg", ".ru", ".fr", ".tr")
   private val urlPathGen: Gen[String] = strGen(15, Gen.alphaNumChar)
 
-  private val pageTitleGen: Gen[String] = for {
-    one <- strGen(5, Gen.alphaNumChar)
-    two <- strGen(5, Gen.alphaNumChar)
-    three <- strGen(5, Gen.alphaNumChar)
-    four <- strGen(5, Gen.alphaNumChar)
-    five <- strGen(5, Gen.alphaNumChar)
-  } yield Random.shuffle(List(one, two, three, four, five)).mkString(" ")
+  private val pageTitleGen: Gen[String] = Gen.chooseNum(1, 10).map(n => Random.shuffle(LoremIpsum.take(n)).mkString(" ").capitalize)
 
   private val useragentFamilyGen: Gen[String] = Gen.oneOf("Chrome", "Firefox", "Safari")
   private val osFamilyGen: Gen[String] = Gen.oneOf("Linux", "Windows", "Mac OS X")
@@ -154,6 +158,18 @@ object EnrichedEventGen extends CatsIO {
     up <- uaParserContextGen
     n <- Gen.chooseNum(0, 1)
   } yield Contexts(Random.shuffle(List(up)).take(n))
+
+  private val linkClickUnstructGen: Gen[UnstructEvent] = for {
+    scheme <- urlSchemeGen
+    prefix <- urlPrefixGen
+    domain <- urlDomainGen
+    tld <- urlTldGen
+    host = s"$prefix$domain$tld"
+    path <- urlPathGen
+    targetUrl = s"$scheme://$host/$path"
+    data = Map("targetUrl" -> targetUrl).asJson
+    selfDesc = SelfDescribingData[Json](LinkClickSchemaKey, data)
+  } yield UnstructEvent(Some(selfDesc))
 
   private def strGen(n: Int, gen: Gen[Char]): Gen[String] =
     Gen.chooseNum(1, n).flatMap(len => Gen.listOfN(len, gen).map(_.mkString))
@@ -218,10 +234,77 @@ object EnrichedEventGen extends CatsIO {
     event_vendor = Some("com.snowplowanalytics.snowplow"),
     event_name = Some("page_view"),
     event_format = Some(EventFormat),
-    event_version = Some(EventVersion)
+    event_version = Some("1-0-0")
   )
 
-  val eventStream: Stream[IO, Event] = Stream.repeatEval(IO(pageViewGen.sample)).collect {
+  val linkClickGen: Gen[Event] = for {
+    id <- Gen.uuid
+    collectorTstamp <- instantGen
+    etlTstamp <- instantGen
+    userIpAddress <- ipAddress
+    domainUserId <- Gen.uuid
+    domainSessionIdx <- Gen.chooseNum(1, 10000)
+    networkUserId <- Gen.uuid
+    pageUrlScheme <- urlSchemeGen
+    pageUrlPrefix <- urlPrefixGen
+    pageUrlDomain <- urlDomainGen
+    pageUrlTld <- urlTldGen
+    pageUrlHost = s"$pageUrlPrefix$pageUrlDomain$pageUrlTld"
+    pageUrlPath <- urlPathGen
+    pageUrl = s"$pageUrlScheme://$pageUrlHost/$pageUrlPath"
+    pageTitle <- pageTitleGen
+    refrUrlScheme <- urlSchemeGen
+    refrUrlPrefix <- urlPrefixGen
+    refrUrlTld <- urlTldGen
+    refrUrlHost = s"$refrUrlPrefix$RefrUrlDomain$refrUrlTld"
+    refrUrlPath <- urlPathGen
+    contexts <- eventContextGen
+    unstruct <- linkClickUnstructGen
+    pageReferrer = s"$refrUrlScheme://$refrUrlHost/$refrUrlPath"
+    derivedContexts <- derivedContextGen
+    domainSessionId <- Gen.uuid
+    derivedTstamp <- instantGen
+  } yield emptyEvent(id, collectorTstamp, VCollector, VEtl).copy(
+    app_id = Some(AppId),
+    platform = Some(Platform),
+    etl_tstamp = Some(etlTstamp),
+    event = Some("unstruct"),
+    name_tracker = Some(NameTracker),
+    v_tracker = Some(VTracker),
+    user_id = Some(UserId),
+    user_ipaddress = Some(userIpAddress),
+    domain_userid = Some(domainUserId.toString),
+    domain_sessionidx = Some(domainSessionIdx),
+    network_userid = Some(networkUserId.toString),
+    page_url = Some(pageUrl),
+    page_title = Some(pageTitle),
+    page_referrer = Some(pageReferrer),
+    page_urlscheme = Some(pageUrlScheme),
+    page_urlhost = Some(pageUrlHost),
+    page_urlpath = Some(pageUrlPath),
+    refr_urlscheme = Some(refrUrlScheme),
+    refr_urlhost = Some(refrUrlHost),
+    refr_urlpath = Some(refrUrlPath),
+    refr_medium = Some(RefrMedium),
+    refr_source = Some(RefrSource),
+    mkt_medium = Some(MktMedium),
+    mkt_source = Some(MktSource),
+    mkt_campaign = Some(MktCampaign),
+    contexts = contexts,
+    unstruct_event = unstruct,
+    useragent = Some(Useragent),
+    derived_contexts = derivedContexts,
+    domain_sessionid = Some(domainSessionId.toString),
+    derived_tstamp = Some(derivedTstamp),
+    event_vendor = Some("com.snowplowanalytics.snowplow"),
+    event_name = Some("link_click"),
+    event_format = Some(EventFormat),
+    event_version = Some("1-0-1")
+  )
+
+  val eventGen: Gen[Event] = Gen.oneOf(pageViewGen, linkClickGen)
+
+  val eventStream: Stream[IO, Event] = Stream.repeatEval(IO(eventGen.sample)).collect {
     case Some(x) => x
   }
 
