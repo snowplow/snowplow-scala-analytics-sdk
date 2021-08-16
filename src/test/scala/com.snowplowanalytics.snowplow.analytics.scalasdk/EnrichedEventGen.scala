@@ -64,6 +64,35 @@ object EnrichedEventGen extends CatsIO {
     SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1, 0, 0))
   private val UaParserSchemaKey = SchemaKey("com.snowplowanalytics.snowplow", "ua_parser_context", "jsonschema", SchemaVer.Full(1, 0, 0))
   private val LinkClickSchemaKey = SchemaKey("com.snowplowanalytics.snowplow", "link_click", "jsonschema", SchemaVer.Full(1, 0, 1))
+  private val PerfTimingSchemaKey = SchemaKey("org.w3", "PerformanceTiming", "jsonschema", SchemaVer.Full(1, 0, 0))
+  private val PerfTimingSchemaProps = List(
+    "navigationStart",
+    "redirectStart",
+    "redirectEnd",
+    "fetchStart",
+    "domainLookupStart",
+    "domainLookupEnd",
+    "connectStart",
+    "secureConnectionStart",
+    "connectEnd",
+    "requestStart",
+    "responseStart",
+    "responseEnd",
+    "unloadEventStart",
+    "unloadEventEnd",
+    "domLoading",
+    "domInteractive",
+    "domContentLoadedEventStart",
+    "domContentLoadedEventEnd",
+    "domComplete",
+    "loadEventStart",
+    "loadEventEnd",
+    "msFirstPaint",
+    "chromeFirstPaint",
+    "requestEnd",
+    "proxyStart",
+    "proxyEnd"
+  )
 
   private val LoremIpsum =
     """Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -75,8 +104,8 @@ object EnrichedEventGen extends CatsIO {
       .split(" ")
       .toList
 
-  val maxTimestamp = Instant.now().getEpochSecond + (30 * 24 * 60 * 60).toLong // 1 month
-  val minTimestamp = Instant.now().getEpochSecond - (30 * 24 * 60 * 60).toLong // 1 month
+  private val maxTimestamp = Instant.now().getEpochSecond + (30 * 24 * 60 * 60).toLong // 1 month
+  private val minTimestamp = Instant.now().getEpochSecond - (30 * 24 * 60 * 60).toLong // 1 month
 
   implicit val instantArbitrary: Arbitrary[Instant] =
     Arbitrary {
@@ -86,7 +115,7 @@ object EnrichedEventGen extends CatsIO {
       } yield Instant.ofEpochSecond(seconds).plusNanos(nanos.toLong)
     }
 
-  val instantGen: Gen[Instant] = Arbitrary.arbitrary[Instant]
+  private val instantGen: Gen[Instant] = Arbitrary.arbitrary[Instant]
 
   private val ipv4Address: Gen[String] =
     for {
@@ -135,6 +164,12 @@ object EnrichedEventGen extends CatsIO {
     selfDesc = SelfDescribingData[Json](GeoLocationSchemaKey, data)
   } yield selfDesc
 
+  private val perfTimingContextGen = for {
+    ns <- Gen.listOfN[Int](27, Gen.chooseNum[Int](1, 100000))
+    data = PerfTimingSchemaProps.zip(ns.padTo(27, 0)).toMap.asJson
+    selfDesc = SelfDescribingData[Json](PerfTimingSchemaKey, data)
+  } yield selfDesc
+
   private val uaParserContextGen: Gen[SelfDescribingData[Json]] = for {
     uaFamily <- useragentFamilyGen
     uaMaj <- Gen.chooseNum[Int](0, 10)
@@ -154,7 +189,8 @@ object EnrichedEventGen extends CatsIO {
     wp <- webPageContextGen
     gl <- geoLocationContextGen
     n <- Gen.chooseNum(0, 2)
-  } yield Contexts(Random.shuffle(List(wp, gl)).take(n))
+    pt <- perfTimingContextGen
+  } yield Contexts(Random.shuffle(List(wp, gl)).take(n) ++ List(pt))
 
   private val derivedContextGen: Gen[Contexts] = for {
     up <- uaParserContextGen
