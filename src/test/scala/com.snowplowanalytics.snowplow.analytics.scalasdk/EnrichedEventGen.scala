@@ -43,7 +43,6 @@ object EnrichedEventGen extends CatsIO {
       Contexts(Nil), None, None, None, None, None, None, None, None)
   // format: on
 
-  private val MaxTimestamp = 2871824840360L
   private val VCollector = "ssc-2.2.1-pubsub"
   private val VEtl = "beam-enrich-1.2.0-common-1.1.0"
   private val AppId = "spirit-walk"
@@ -76,15 +75,18 @@ object EnrichedEventGen extends CatsIO {
       .split(" ")
       .toList
 
+  val maxTimestamp = Instant.now().getEpochSecond + (30 * 24 * 60 * 60).toLong // 1 month
+  val minTimestamp = Instant.now().getEpochSecond - (30 * 24 * 60 * 60).toLong // 1 month
+
   implicit val instantArbitrary: Arbitrary[Instant] =
     Arbitrary {
       for {
-        seconds <- Gen.chooseNum(0L, MaxTimestamp)
+        seconds <- Gen.chooseNum(minTimestamp, maxTimestamp)
         nanos <- Gen.chooseNum(Instant.MIN.getNano, Instant.MAX.getNano)
-      } yield Instant.ofEpochMilli(seconds).plusNanos(nanos.toLong)
+      } yield Instant.ofEpochSecond(seconds).plusNanos(nanos.toLong)
     }
 
-  private val instantGen: Gen[Instant] = Arbitrary.arbitrary[Instant]
+  val instantGen: Gen[Instant] = Arbitrary.arbitrary[Instant]
 
   private val ipv4Address: Gen[String] =
     for {
@@ -177,7 +179,7 @@ object EnrichedEventGen extends CatsIO {
   val pageViewGen: Gen[Event] = for {
     id <- Gen.uuid
     collectorTstamp <- instantGen
-    etlTstamp <- instantGen
+    etlTstamp = collectorTstamp.plusSeconds(10)
     userIpAddress <- ipAddress
     domainUserId <- Gen.uuid
     domainSessionIdx <- Gen.chooseNum(1, 10000)
@@ -199,7 +201,7 @@ object EnrichedEventGen extends CatsIO {
     pageReferrer = s"$refrUrlScheme://$refrUrlHost/$refrUrlPath"
     derivedContexts <- derivedContextGen
     domainSessionId <- Gen.uuid
-    derivedTstamp <- instantGen
+    derivedTstamp = collectorTstamp
   } yield emptyEvent(id, collectorTstamp, VCollector, VEtl).copy(
     app_id = Some(AppId),
     platform = Some(Platform),
@@ -240,7 +242,7 @@ object EnrichedEventGen extends CatsIO {
   val linkClickGen: Gen[Event] = for {
     id <- Gen.uuid
     collectorTstamp <- instantGen
-    etlTstamp <- instantGen
+    etlTstamp = collectorTstamp.plusSeconds(15)
     userIpAddress <- ipAddress
     domainUserId <- Gen.uuid
     domainSessionIdx <- Gen.chooseNum(1, 10000)
@@ -263,7 +265,7 @@ object EnrichedEventGen extends CatsIO {
     pageReferrer = s"$refrUrlScheme://$refrUrlHost/$refrUrlPath"
     derivedContexts <- derivedContextGen
     domainSessionId <- Gen.uuid
-    derivedTstamp <- instantGen
+    derivedTstamp = collectorTstamp.plusSeconds(10)
   } yield emptyEvent(id, collectorTstamp, VCollector, VEtl).copy(
     app_id = Some(AppId),
     platform = Some(Platform),
@@ -312,7 +314,7 @@ object EnrichedEventGen extends CatsIO {
     for {
       counter <- Ref.of[IO, Int](0)
       dir <- Blocker[IO].use(b => createDirectory[IO](b, dir))
-      filename = counter.updateAndGet(_ + 1).map(i => Paths.get(s"${dir.toAbsolutePath}/enriched_events.$i.tsv"))
+      filename = counter.updateAndGet(_ + 1).map(i => Paths.get(s"${dir.toAbsolutePath}/enriched_events.$i.txt"))
       _ <- Blocker[IO].use { b =>
              val result =
                for {
