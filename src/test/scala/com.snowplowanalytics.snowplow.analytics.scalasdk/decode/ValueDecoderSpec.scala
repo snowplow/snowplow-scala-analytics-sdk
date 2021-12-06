@@ -42,7 +42,7 @@ class ValueDecoderSpec extends Specification {
 
   "The ValueDecoder class" should {
     "parse String and Option[String] values" in {
-      ValueDecoder[String].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field 'key cannot be empty").asLeft
+      ValueDecoder[String].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
       ValueDecoder[String].parse(Symbol("key"), "value") mustEqual "value".asRight
       ValueDecoder[Option[String]].parse(Symbol("key"), "") mustEqual None.asRight
       ValueDecoder[Option[String]].parse(Symbol("key"), "value") mustEqual Some("value").asRight
