@@ -15,20 +15,15 @@
 import sbt._
 import Keys._
 
-// Bintray plugin
-import bintray.BintrayPlugin._
-import bintray.BintrayKeys._
 
 // Mima plugin
 import com.typesafe.tools.mima.plugin.MimaKeys._
-import com.typesafe.tools.mima.plugin.MimaPlugin
 
 // Scoverage plugin
 import scoverage.ScoverageKeys._
 
 import com.typesafe.sbt.site.SitePlugin.autoImport._
 import com.typesafe.sbt.site.SiteScaladocPlugin.autoImport._
-import com.typesafe.sbt.SbtGit.GitKeys.{gitBranch, gitRemoteRepo}
 import com.typesafe.sbt.site.preprocess.PreprocessPlugin.autoImport._
 
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
@@ -48,31 +43,22 @@ object BuildSettings {
     )
   )
 
-  // Bintray publishing settings
-  lazy val bintrayPublishSettings = bintraySettings ++ Seq[Setting[_]](
-    licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
-    bintrayOrganization := Some("snowplow"),
-    bintrayRepository := "snowplow-maven"
-  )
 
-  // Maven Central publishing settings
-  lazy val mavenCentralExtras = Seq[Setting[_]](
+  lazy val publishSettings = Seq[Setting[_]](
+    publishArtifact := true,
+    Test / publishArtifact := false,
+    licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
     pomIncludeRepository := { _ => false },
     homepage := Some(url("http://snowplowanalytics.com")),
-    scmInfo := Some(ScmInfo(url("https://github.com/snowplow/scala-scala-analytics-sdk"),
-      "scm:git@github.com:snowplow/snowplow-scala-analytics-sdk.git")),
-    pomExtra := (
-      <developers>
-        <developer>
-          <name>Snowplow Analytics Ltd</name>
-          <email>support@snowplowanalytics.com</email>
-          <organization>Snowplow Analytics Ltd</organization>
-          <organizationUrl>http://snowplowanalytics.com</organizationUrl>
-        </developer>
-      </developers>)
+    developers := List(
+      Developer(
+        "Snowplow Analytics Ltd",
+        "Snowplow Analytics Ltd",
+        "support@snowplowanalytics.com",
+        url("https://snowplowanalytics.com")
+      )
+    )
   )
-
-  lazy val publishSettings = bintrayPublishSettings ++ mavenCentralExtras
 
   // If new version introduces breaking changes,
   // clear-out mimaBinaryIssueFilters and mimaPreviousVersions.
@@ -80,12 +66,13 @@ object BuildSettings {
   // removing other versions.
   val mimaPreviousVersions = Set()
 
-  val mimaSettings = MimaPlugin.mimaDefaultSettings ++ Seq(
+  val mimaSettings = Seq(
     mimaPreviousArtifacts := mimaPreviousVersions.map { organization.value %% name.value % _ },
+    ThisBuild / mimaFailOnNoPrevious := false,
     mimaBinaryIssueFilters ++= Seq(),
-    test in Test := {
+    Test / test := {
       mimaReportBinaryIssues.value
-      (test in Test).value
+      (Test / test).value
     }
   )
 
@@ -105,6 +92,6 @@ object BuildSettings {
 
   lazy val formattingSettings = Seq(
     scalafmtConfig    := file(".scalafmt.conf"),
-    scalafmtOnCompile := false
+    scalafmtOnCompile := true
   )
 }

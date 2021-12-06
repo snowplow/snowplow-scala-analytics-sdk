@@ -17,8 +17,8 @@ lazy val root = project.in(file("."))
     organization       := "com.snowplowanalytics",
     version            := "2.1.0",
     description        := "Scala analytics SDK for Snowplow",
-    scalaVersion       := "2.13.2",
-    crossScalaVersions := Seq("2.12.11", "2.13.2")
+    scalaVersion       := "2.13.6",
+    crossScalaVersions := Seq("2.12.11", "2.13.3")
   ))
   .enablePlugins(SiteScaladocPlugin)
   .enablePlugins(PreprocessPlugin)
