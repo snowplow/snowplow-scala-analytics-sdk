@@ -19,7 +19,7 @@ import cats.syntax.apply._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo.UnhandledRowDecodingError
 
 /**
- * Type class to decode List of keys-value pairs into HList
+ * Type class to decode List of keys-value into HList
  * Keys derived from original class of HList,
  * Values are actual TSV columns
  */
