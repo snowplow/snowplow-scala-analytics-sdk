@@ -1,3 +1,7 @@
+Version 3.0.0 (2022-02-09)
+--------------------------
+Event parser should fail on oversized fields (close #115)
+
 Version 2.1.0 (2020-11-09)
 --------------------------
 Update README to point to docs (close #110)

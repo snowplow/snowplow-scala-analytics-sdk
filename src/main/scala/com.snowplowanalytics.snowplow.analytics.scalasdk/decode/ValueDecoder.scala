@@ -52,13 +52,26 @@ private[decode] object ValueDecoder {
   implicit final val stringColumnDecoder: ValueDecoder[String] =
     fromFunc[String] {
       case (key, value) =>
-        if (value.isEmpty) InvalidValue(key, value, s"Field $key cannot be empty").asLeft else value.asRight
+        if (value.length > Event.FIELD_SIZES.getOrElse(key.name, Int.MaxValue))
+          InvalidValue(key,
+                       value,
+                       s"Field ${key.name} longer than maximum allowed size ${Event.FIELD_SIZES.getOrElse(key.name, Int.MaxValue)}"
+          ).asLeft
+        else if (value.isEmpty) InvalidValue(key, value, s"Field ${key.name} cannot be empty").asLeft
+        else value.asRight
     }
 
   implicit final val stringOptionColumnDecoder: ValueDecoder[Option[String]] =
     fromFunc[Option[String]] {
-      case (_, value) =>
-        if (value.isEmpty) none[String].asRight else value.some.asRight
+      case (k, value) =>
+        if (value.length > Event.FIELD_SIZES.getOrElse(k.name, Int.MaxValue))
+          InvalidValue(k,
+                       value,
+                       s"Field ${k.name} longer than maximum allowed size ${Event.FIELD_SIZES.getOrElse(k.name, Int.MaxValue)}"
+          ).asLeft
+        else if (value.isEmpty) none[String].asRight
+        else value.some.asRight
+
     }
 
   implicit final val intColumnDecoder: ValueDecoder[Option[Int]] =
