@@ -2,8 +2,7 @@ name: Snyk
 
 on:
   push:
-    tags:
-      - '*'
+    branches: [ master ]
 
 jobs:
   check-vulnerabilities:
