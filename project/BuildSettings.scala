@@ -22,6 +22,9 @@ import com.typesafe.tools.mima.plugin.MimaKeys._
 // Scoverage plugin
 import scoverage.ScoverageKeys._
 
+
+import sbtdynver.DynVerPlugin.autoImport._
+
 import com.typesafe.sbt.site.SitePlugin.autoImport._
 import com.typesafe.sbt.site.SiteScaladocPlugin.autoImport._
 import com.typesafe.sbt.site.preprocess.PreprocessPlugin.autoImport._
@@ -43,6 +46,10 @@ object BuildSettings {
     )
   )
 
+  lazy val dynVerSettings = Seq(
+    ThisBuild / dynverVTagPrefix := false, // Otherwise git tags required to have v-prefix
+    ThisBuild / dynverSeparator := "-" // to be compatible with docker
+  )
 
   lazy val publishSettings = Seq[Setting[_]](
     publishArtifact := true,
