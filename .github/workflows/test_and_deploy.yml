@@ -34,23 +34,11 @@ jobs:
           PGP_SECRET: ${{ secrets.SONA_PGP_SECRET }}
           SONATYPE_USERNAME: ${{ secrets.SONA_USER }}
           SONATYPE_PASSWORD: ${{ secrets.SONA_PASS }}
-        run: |
-          project_version=$(sbt version -Dsbt.log.noformat=true | perl -ne 'print "$1\n" if /info.*(\d+\.\d+\.\d+[^\r\n]*)/' | tail -n 1 | tr -d '\n')
-          if [[ "${{ github.ref }}" = "refs/tags/${project_version}" ]]
-          then
-            echo Publishing to Maven Central
-            sbt +publish
-          else
-            echo "${{ github.ref }} does not match project version $project_version => not publishing"
-            exit 1
-          fi
+        run: sbt +publish
 
       - name: Publish website
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          project_version=$(sbt version -Dsbt.log.noformat=true | perl -ne 'print "$1\n" if /info.*(\d+\.\d+\.\d+[^\r\n]*)/' | tail -n 1 | tr -d '\n')
-          if [[ "${{ github.ref }}" = "refs/tags/${project_version}" ]]
-          then
             echo Publishing Scaladoc
             git fetch
             git checkout gh-pages
@@ -60,7 +48,3 @@ jobs:
             git add index.html $project_version
             git commit -m "Added Scaladoc for $project_version"
             git push origin gh-pages
-          else
-            echo "${{ github.ref }} does not match project version $project_version => not publishing"
-            exit 1
-          fi
