@@ -3,7 +3,8 @@ name: Snyk
 on:
   push:
     branches: [ master ]
-
+  create:
+    tags: [ * ]
 jobs:
   check-vulnerabilities:
     runs-on: ubuntu-latest
