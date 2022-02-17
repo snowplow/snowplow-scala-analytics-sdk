@@ -85,6 +85,7 @@ object BuildSettings {
 
   val scoverageSettings = Seq(
     coverageMinimum := 50,
+    coverageExcludedPackages := "*Spec.*",
     coverageFailOnMinimum := true,
     coverageHighlighting := false,
     (test in Test) := {
