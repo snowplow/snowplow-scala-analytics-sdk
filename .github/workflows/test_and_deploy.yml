@@ -30,17 +30,16 @@ jobs:
       - name: Publish to Bintray and Maven central
         if: startsWith(github.ref, 'refs/tags/')
         env:
-          BINTRAY_USER: ${{ secrets.BINTRAY_SNOWPLOW_MAVEN_USER }}
-          BINTRAY_PASS: ${{ secrets.BINTRAY_SNOWPLOW_MAVEN_API_KEY }}
-          SONA_USER: snowplow
-          SONA_PASS: ${{ secrets.SONA_PASS }}
+          PGP_PASSPHRASE: ${{ secrets.SONA_PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.SONA_PGP_SECRET }}
+          SONATYPE_USERNAME: ${{ secrets.SONA_USER }}
+          SONATYPE_PASSWORD: ${{ secrets.SONA_PASS }}
         run: |
           project_version=$(sbt version -Dsbt.log.noformat=true | perl -ne 'print "$1\n" if /info.*(\d+\.\d+\.\d+[^\r\n]*)/' | tail -n 1 | tr -d '\n')
           if [[ "${{ github.ref }}" = "refs/tags/${project_version}" ]]
           then
-            echo Publishing to Bintray and Maven Central
+            echo Publishing to Maven Central
             sbt +publish
-            sbt +bintraySyncMavenCentral
           else
             echo "${{ github.ref }} does not match project version $project_version => not publishing"
             exit 1

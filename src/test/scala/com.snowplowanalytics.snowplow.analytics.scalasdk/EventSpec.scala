@@ -1880,16 +1880,13 @@ class EventSpec extends Specification with ScalaCheck {
       // Case class must be correctly invalidated
       val res = RowDecodingError(
         NonEmptyList.of(
-          InvalidValue(Symbol("etl_tstamp"), "not_an_instant", "Cannot parse key 'etl_tstamp with value not_an_instant into datetime"),
-          InvalidValue(Symbol("collector_tstamp"), "", "Field 'collector_tstamp cannot be empty"),
-          InvalidValue(Symbol("event_id"), "not_a_uuid", "Cannot parse key 'event_id with value not_a_uuid into UUID"),
-          InvalidValue(Symbol("txn_id"), "not_an_integer", "Cannot parse key 'txn_id with value not_an_integer into integer"),
+          InvalidValue(Symbol("etl_tstamp"), "not_an_instant", "Cannot parse key etl_tstamp into datetime"),
+          InvalidValue(Symbol("collector_tstamp"), "", "Field collector_tstamp cannot be empty"),
+          InvalidValue(Symbol("event_id"), "not_a_uuid", "Cannot parse key event_id into UUID"),
+          InvalidValue(Symbol("txn_id"), "not_an_integer", "Cannot parse key txn_id into integer"),
           InvalidValue(Symbol("v_collector"), "", "Field v_collector cannot be empty"),
-          InvalidValue(Symbol("geo_latitude"), "not_a_double", "Cannot parse key 'geo_latitude with value not_a_double into double"),
-          InvalidValue(Symbol("br_features_pdf"),
-                       "not_a_boolean",
-                       "Cannot parse key 'br_features_pdf with value not_a_boolean into boolean"
-          )
+          InvalidValue(Symbol("geo_latitude"), "not_a_double", "Cannot parse key geo_latitude into double"),
+          InvalidValue(Symbol("br_features_pdf"), "not_a_boolean", "Cannot parse key br_features_pdf into boolean")
         )
       )
       event mustEqual Invalid(res)

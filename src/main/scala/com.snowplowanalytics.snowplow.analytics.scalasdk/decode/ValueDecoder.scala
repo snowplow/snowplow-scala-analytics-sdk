@@ -82,7 +82,7 @@ private[decode] object ValueDecoder {
           try value.toInt.some.asRight
           catch {
             case _: NumberFormatException =>
-              InvalidValue(key, value, s"Cannot parse key $key with value $value into integer").asLeft
+              InvalidValue(key, value, s"Cannot parse key ${key.name} into integer").asLeft
           }
     }
 
@@ -90,12 +90,12 @@ private[decode] object ValueDecoder {
     fromFunc[UUID] {
       case (key, value) =>
         if (value.isEmpty)
-          InvalidValue(key, value, s"Field $key cannot be empty").asLeft
+          InvalidValue(key, value, s"Field ${key.name} cannot be empty").asLeft
         else
           try UUID.fromString(value).asRight[RowDecodingErrorInfo]
           catch {
             case _: IllegalArgumentException =>
-              InvalidValue(key, value, s"Cannot parse key $key with value $value into UUID").asLeft
+              InvalidValue(key, value, s"Cannot parse key ${key.name} into UUID").asLeft
           }
     }
 
@@ -106,7 +106,7 @@ private[decode] object ValueDecoder {
           case "0" => false.some.asRight
           case "1" => true.some.asRight
           case "" => none[Boolean].asRight
-          case _ => InvalidValue(key, value, s"Cannot parse key $key with value $value into boolean").asLeft
+          case _ => InvalidValue(key, value, s"Cannot parse key ${key.name} into boolean").asLeft
         }
     }
 
@@ -119,7 +119,7 @@ private[decode] object ValueDecoder {
           try value.toDouble.some.asRight
           catch {
             case _: NumberFormatException =>
-              InvalidValue(key, value, s"Cannot parse key $key with value $value into double").asLeft
+              InvalidValue(key, value, s"Cannot parse key ${key.name} into double").asLeft
           }
     }
 
@@ -127,13 +127,13 @@ private[decode] object ValueDecoder {
     fromFunc[Instant] {
       case (key, value) =>
         if (value.isEmpty)
-          InvalidValue(key, value, s"Field $key cannot be empty").asLeft
+          InvalidValue(key, value, s"Field ${key.name} cannot be empty").asLeft
         else {
           val tstamp = reformatTstamp(value)
           try Instant.parse(tstamp).asRight
           catch {
             case _: DateTimeParseException =>
-              InvalidValue(key, value, s"Cannot parse key $key with value $value into datetime").asLeft
+              InvalidValue(key, value, s"Cannot parse key ${key.name} into datetime").asLeft
           }
         }
     }
@@ -148,7 +148,7 @@ private[decode] object ValueDecoder {
           try Instant.parse(tstamp).some.asRight
           catch {
             case _: DateTimeParseException =>
-              InvalidValue(key, value, s"Cannot parse key $key with value $value into datetime").asLeft
+              InvalidValue(key, value, s"Cannot parse key ${key.name} into datetime").asLeft
           }
         }
     }

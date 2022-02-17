@@ -53,18 +53,18 @@ class ValueDecoderSpec extends Specification {
       ValueDecoder[Option[Int]].parse(Symbol("key"), "42") mustEqual Some(42).asRight
       ValueDecoder[Option[Int]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
                                                                                      "value",
-                                                                                     "Cannot parse key 'key with value value into integer"
+                                                                                     "Cannot parse key key into integer"
       ).asLeft
     }
 
     "parse UUID values" in {
-      ValueDecoder[UUID].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field 'key cannot be empty").asLeft
+      ValueDecoder[UUID].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
       ValueDecoder[UUID].parse(Symbol("key"), "d2161fd1-ffed-41df-ac3e-a729012105f5") mustEqual UUID
         .fromString("d2161fd1-ffed-41df-ac3e-a729012105f5")
         .asRight
       ValueDecoder[UUID].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
                                                                               "value",
-                                                                              "Cannot parse key 'key with value value into UUID"
+                                                                              "Cannot parse key key into UUID"
       ).asLeft
     }
 
@@ -75,7 +75,7 @@ class ValueDecoderSpec extends Specification {
       ValueDecoder[Option[Boolean]].parse(Symbol("key"), "value") mustEqual InvalidValue(
         Symbol("key"),
         "value",
-        "Cannot parse key 'key with value value into boolean"
+        "Cannot parse key key into boolean"
       ).asLeft
     }
 
@@ -84,16 +84,16 @@ class ValueDecoderSpec extends Specification {
       ValueDecoder[Option[Double]].parse(Symbol("key"), "42.5") mustEqual Some(42.5).asRight
       ValueDecoder[Option[Double]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
                                                                                         "value",
-                                                                                        "Cannot parse key 'key with value value into double"
+                                                                                        "Cannot parse key key into double"
       ).asLeft
     }
 
     "parse Instant and Option[Instant] values" in {
-      ValueDecoder[Instant].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field 'key cannot be empty").asLeft
+      ValueDecoder[Instant].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
       ValueDecoder[Instant].parse(Symbol("key"), "2013-11-26 00:03:57.885") mustEqual Instant.parse("2013-11-26T00:03:57.885Z").asRight
       ValueDecoder[Instant].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
                                                                                  "value",
-                                                                                 "Cannot parse key 'key with value value into datetime"
+                                                                                 "Cannot parse key key into datetime"
       ).asLeft
       ValueDecoder[Option[Instant]].parse(Symbol("key"), "") mustEqual None.asRight
       ValueDecoder[Option[Instant]].parse(Symbol("key"), "2013-11-26 00:03:57.885") mustEqual Some(
@@ -102,7 +102,7 @@ class ValueDecoderSpec extends Specification {
       ValueDecoder[Option[Instant]].parse(Symbol("key"), "value") mustEqual InvalidValue(
         Symbol("key"),
         "value",
-        "Cannot parse key 'key with value value into datetime"
+        "Cannot parse key key into datetime"
       ).asLeft
     }
 
