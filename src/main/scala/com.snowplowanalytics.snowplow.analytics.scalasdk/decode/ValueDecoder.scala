@@ -14,6 +14,8 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 package decode
 
 // java
+import com.snowplowanalytics.snowplow.analytics.scalasdk.validate.FIELD_SIZES
+
 import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.util.UUID
@@ -52,10 +54,10 @@ private[decode] object ValueDecoder {
   implicit final val stringColumnDecoder: ValueDecoder[String] =
     fromFunc[String] {
       case (key, value) =>
-        if (value.length > Event.FIELD_SIZES.getOrElse(key.name, Int.MaxValue))
+        if (value.length > FIELD_SIZES.getOrElse(key.name, Int.MaxValue))
           InvalidValue(key,
                        value,
-                       s"Field ${key.name} longer than maximum allowed size ${Event.FIELD_SIZES.getOrElse(key.name, Int.MaxValue)}"
+                       s"Field ${key.name} longer than maximum allowed size ${FIELD_SIZES.getOrElse(key.name, Int.MaxValue)}"
           ).asLeft
         else if (value.isEmpty) InvalidValue(key, value, s"Field ${key.name} cannot be empty").asLeft
         else value.asRight
@@ -64,11 +66,8 @@ private[decode] object ValueDecoder {
   implicit final val stringOptionColumnDecoder: ValueDecoder[Option[String]] =
     fromFunc[Option[String]] {
       case (k, value) =>
-        if (value.length > Event.FIELD_SIZES.getOrElse(k.name, Int.MaxValue))
-          InvalidValue(k,
-                       value,
-                       s"Field ${k.name} longer than maximum allowed size ${Event.FIELD_SIZES.getOrElse(k.name, Int.MaxValue)}"
-          ).asLeft
+        if (value.length > FIELD_SIZES.getOrElse(k.name, Int.MaxValue))
+          InvalidValue(k, value, s"Field ${k.name} longer than maximum allowed size ${FIELD_SIZES.getOrElse(k.name, Int.MaxValue)}").asLeft
         else if (value.isEmpty) none[String].asRight
         else value.some.asRight
 
