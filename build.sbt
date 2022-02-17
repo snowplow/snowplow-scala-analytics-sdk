@@ -11,14 +11,17 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 
-lazy val root = project.in(file("."))
-  .settings(Seq[Setting[_]](
-    name               := "snowplow-scala-analytics-sdk",
-    organization       := "com.snowplowanalytics",
-    description        := "Scala analytics SDK for Snowplow",
-    scalaVersion       := "2.13.3",
-    crossScalaVersions := Seq("2.12.11", "2.13.3")
-  ))
+lazy val root = project
+  .in(file("."))
+  .settings(
+    Seq[Setting[_]](
+      name := "snowplow-scala-analytics-sdk",
+      organization := "com.snowplowanalytics",
+      description := "Scala analytics SDK for Snowplow",
+      scalaVersion := "2.13.3",
+      crossScalaVersions := Seq("2.12.11", "2.13.3")
+    )
+  )
   .enablePlugins(SiteScaladocPlugin)
   .enablePlugins(PreprocessPlugin)
   .settings(BuildSettings.dynVerSettings)
@@ -28,11 +31,14 @@ lazy val root = project.in(file("."))
   .settings(BuildSettings.scoverageSettings)
   .settings(BuildSettings.sbtSiteSettings)
   .settings(BuildSettings.formattingSettings)
-  .settings(Seq(
-    Test / javaOptions := Seq("-Xmx100M"),
-    Test / fork := true,
-    shellPrompt := { _ => name.value + " > " }
-  ))
+  .settings(
+    Seq(
+      javaOptions := Seq("-Xmx500M"),
+      Test / javaOptions := Seq("-Xmx500M"),
+      Test / fork := true,
+      shellPrompt := { _ => name.value + " > " }
+    )
+  )
   .settings(
     libraryDependencies ++= Seq(
       // Scala
