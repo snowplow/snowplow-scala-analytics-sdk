@@ -86,7 +86,6 @@ object BuildSettings {
   val scoverageSettings = Seq(
     coverageMinimum := 50,
     coverageFailOnMinimum := true,
-    coverageExcludedFiles := "*Spec",
     coverageHighlighting := false,
     (test in Test) := {
       (coverageReport dependsOn (test in Test)).value
