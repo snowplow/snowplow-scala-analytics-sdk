@@ -29,6 +29,8 @@ lazy val root = project.in(file("."))
   .settings(BuildSettings.sbtSiteSettings)
   .settings(BuildSettings.formattingSettings)
   .settings(Seq(
+    Test / javaOptions := Seq("-Xmx100M"),
+    Test / fork := true,
     shellPrompt := { _ => name.value + " > " }
   ))
   .settings(
