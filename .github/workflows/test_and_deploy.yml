@@ -48,12 +48,3 @@ jobs:
             git add index.html $project_version
             git commit -m "Added Scaladoc for $project_version"
             git push origin gh-pages
-
-      - name: Snyk test for vulnerabilities
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: snyk/actions/scala@master
-        with:
-          command: test
-          args: --project-name=analytics-sdk-scala
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

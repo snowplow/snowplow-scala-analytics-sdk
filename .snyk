@@ -1,0 +1,5 @@
+ignore:
+  'SNYK-JAVA-ORGTYPELEVEL-2331743':
+    - '*':
+        reason: No fix available
+        expires: 2022-10-01T17:33:45.004Z
