@@ -242,12 +242,16 @@ case class Event(
 
 object Event {
 
+  object unsafe {
+    implicit def unsafeEventDecoder: Decoder[Event] = deriveDecoder[Event]
+  }
+
   /**
    * Automatically derived Circe encoder
    */
   implicit val jsonEncoder: Encoder.AsObject[Event] = deriveEncoder[Event]
 
-  implicit def eventDecoder: Decoder[Event] = deriveDecoder[Event]
+  implicit def eventDecoder: Decoder[Event] = unsafe.unsafeEventDecoder.ensure(validate.validator)
 
   /**
    * Derived TSV parser for the Event class

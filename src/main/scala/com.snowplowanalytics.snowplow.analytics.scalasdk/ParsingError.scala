@@ -78,7 +78,7 @@ object ParsingError {
         case InvalidValue(key, value, message) =>
           Json.obj(
             "type" := "InvalidValue",
-            "key" := key,
+            "key" := key.name,
             "value" := value,
             "message" := message
           )

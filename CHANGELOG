@@ -1,3 +1,9 @@
+Version 3.0.0 (2022-02-09)
+--------------------------
+Event parser should fail on oversized fields (close #115)
+Fix scoverage failures in github actions (close #119)
+Update github workflows fix snyk vulnerability scanning (close #120)
+
 Version 2.1.0 (2020-11-09)
 --------------------------
 Update README to point to docs (close #110)

@@ -17,7 +17,7 @@ object Dependencies {
   object V {
     val igluCore       = "1.0.0"
     val cats           = "2.1.1"
-    val circe          = "0.13.0"
+    val circe          = "0.14.1"
     // Scala (test only)
     val specs2         = "4.8.0"
     val scalaCheck     = "1.15.0"
