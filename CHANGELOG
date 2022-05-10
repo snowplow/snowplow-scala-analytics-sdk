@@ -1,3 +1,7 @@
+Version 3.0.1 (2022-05-10)
+--------------------------
+3.0.0 was not published to maven (close #121)
+
 Version 3.0.0 (2022-02-09)
 --------------------------
 Event parser should fail on oversized fields (close #115)
