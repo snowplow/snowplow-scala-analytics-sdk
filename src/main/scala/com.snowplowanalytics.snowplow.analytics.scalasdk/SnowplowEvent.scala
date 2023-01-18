@@ -14,7 +14,6 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 
 // circe
 import io.circe.syntax._
-import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.CursorOp.DownField
 
@@ -41,7 +40,7 @@ object SnowplowEvent {
   }
 
   implicit final val unstructCirceEncoder: Encoder[UnstructEvent] =
-    Encoder.instance { unstructEvent: UnstructEvent =>
+    Encoder.instance { unstructEvent =>
       if (unstructEvent.data.isEmpty) Json.Null
       else
         JsonObject(
@@ -50,7 +49,7 @@ object SnowplowEvent {
         ).asJson
     }
 
-  implicit val unstructEventDecoder: Decoder[UnstructEvent] = deriveDecoder[UnstructEvent].recover {
+  implicit val unstructEventDecoder: Decoder[UnstructEvent] = Decoder.forProduct1("data")(UnstructEvent.apply).recover {
     case DecodingFailure(_, DownField("data") :: _) => UnstructEvent(None)
   }
 
@@ -72,7 +71,7 @@ object SnowplowEvent {
   }
 
   implicit final val contextsCirceEncoder: Encoder[Contexts] =
-    Encoder.instance { contexts: Contexts =>
+    Encoder.instance { contexts =>
       if (contexts.data.isEmpty) JsonObject.empty.asJson
       else
         JsonObject(
@@ -81,7 +80,7 @@ object SnowplowEvent {
         ).asJson
     }
 
-  implicit val contextsDecoder: Decoder[Contexts] = deriveDecoder[Contexts].recover {
+  implicit val contextsDecoder: Decoder[Contexts] = Decoder.forProduct1("data")(Contexts.apply).recover {
     case DecodingFailure(_, DownField("data") :: _) => Contexts(List())
   }
 

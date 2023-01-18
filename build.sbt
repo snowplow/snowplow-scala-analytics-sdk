@@ -18,8 +18,8 @@ lazy val root = project
       name := "snowplow-scala-analytics-sdk",
       organization := "com.snowplowanalytics",
       description := "Scala analytics SDK for Snowplow",
-      scalaVersion := "2.13.3",
-      crossScalaVersions := Seq("2.12.11", "2.13.3")
+      scalaVersion := "2.13.10",
+      crossScalaVersions := Seq("2.12.17", "2.13.10", "3.2.1")
     )
   )
   .enablePlugins(SiteScaladocPlugin)
