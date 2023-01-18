@@ -29,7 +29,7 @@ object ParsingError {
   /**
    * Represents an error indicating a non-TSV line.
    */
-  final case object NotTSV extends ParsingError
+  case object NotTSV extends ParsingError
 
   /**
    * Represents an error indicating the number of actual fields is not equal
@@ -105,7 +105,7 @@ object ParsingError {
                         cursor
                           .downField("message")
                           .as[String]
-                          .map(UnhandledRowDecodingError)
+                          .map(UnhandledRowDecodingError(_))
                     }
         } yield result
       }
@@ -138,12 +138,12 @@ object ParsingError {
                       cursor
                         .downField("fieldCount")
                         .as[Int]
-                        .map(FieldNumberMismatch)
+                        .map(FieldNumberMismatch(_))
                     case "RowDecodingError" =>
                       cursor
                         .downField("errors")
                         .as[NonEmptyList[RowDecodingErrorInfo]]
-                        .map(RowDecodingError)
+                        .map(RowDecodingError(_))
                     case _ =>
                       DecodingFailure(s"Error type $error is not an Analytics SDK Parsing Error.", cursor.history).asLeft
                   }

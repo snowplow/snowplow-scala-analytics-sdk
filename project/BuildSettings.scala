@@ -35,15 +35,23 @@ object BuildSettings {
 
   // Basic settings for our app
   lazy val buildSettings = Seq(
-    scalacOptions      := Seq(
+    scalacOptions      ++= Seq(
       "-deprecation",
       "-encoding", "UTF-8",
       "-feature",
-      "-unchecked",
-      "-Ywarn-dead-code",
-      "-Ywarn-numeric-widen",
-      "-Ywarn-value-discard"
-    )
+      "-unchecked"
+    ),
+    scalacOptions ++= {
+      if (scalaVersion.value.startsWith("3")) {
+        Seq("-Xmax-inlines", "150")
+      } else {
+        Seq(
+          "-Ywarn-dead-code",
+          "-Ywarn-numeric-widen",
+          "-Ywarn-value-discard"
+        )
+      }
+    }
   )
 
   lazy val dynVerSettings = Seq(
@@ -89,14 +97,14 @@ object BuildSettings {
     coverageExcludedFiles := """.*\/Event.*;""",
     coverageFailOnMinimum := true,
     coverageHighlighting := false,
-    (test in Test) := {
-      (coverageReport dependsOn (test in Test)).value
+    (Test / test) := {
+      (coverageReport dependsOn (Test / test)).value
     }
   )
 
   lazy val sbtSiteSettings = Seq(
-    siteSubdirName in SiteScaladoc := s"${version.value}",
-    preprocessVars in Preprocess := Map("VERSION" -> version.value)
+    SiteScaladoc / siteSubdirName := s"${version.value}",
+    Preprocess  / preprocessVars := Map("VERSION" -> version.value)
   )
 
   lazy val formattingSettings = Seq(

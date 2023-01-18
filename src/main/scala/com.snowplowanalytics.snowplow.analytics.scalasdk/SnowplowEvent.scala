@@ -14,7 +14,6 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 
 // circe
 import io.circe.syntax._
-import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.CursorOp.DownField
 
@@ -40,18 +39,21 @@ object SnowplowEvent {
       }
   }
 
-  implicit final val unstructCirceEncoder: Encoder[UnstructEvent] =
-    Encoder.instance { unstructEvent: UnstructEvent =>
-      if (unstructEvent.data.isEmpty) Json.Null
-      else
-        JsonObject(
-          ("schema", Common.UnstructEventUri.toSchemaUri.asJson),
-          ("data", unstructEvent.data.asJson)
-        ).asJson
-    }
+  object UnstructEvent {
 
-  implicit val unstructEventDecoder: Decoder[UnstructEvent] = deriveDecoder[UnstructEvent].recover {
-    case DecodingFailure(_, DownField("data") :: _) => UnstructEvent(None)
+    implicit final val unstructCirceEncoder: Encoder[UnstructEvent] =
+      Encoder.instance { (unstructEvent: UnstructEvent) =>
+        if (unstructEvent.data.isEmpty) Json.Null
+        else
+          JsonObject(
+            ("schema", Common.UnstructEventUri.toSchemaUri.asJson),
+            ("data", unstructEvent.data.asJson)
+          ).asJson
+      }
+
+    implicit val unstructEventDecoder: Decoder[UnstructEvent] = Decoder.forProduct1("data")(apply).recover {
+      case DecodingFailure(_, DownField("data") :: _) => UnstructEvent(None)
+    }
   }
 
   /**
@@ -71,18 +73,20 @@ object SnowplowEvent {
       }
   }
 
-  implicit final val contextsCirceEncoder: Encoder[Contexts] =
-    Encoder.instance { contexts: Contexts =>
-      if (contexts.data.isEmpty) JsonObject.empty.asJson
-      else
-        JsonObject(
-          ("schema", Common.ContextsUri.toSchemaUri.asJson),
-          ("data", contexts.data.asJson)
-        ).asJson
-    }
+  object Contexts {
+    implicit final val contextsCirceEncoder: Encoder[Contexts] =
+      Encoder.instance { (contexts: Contexts) =>
+        if (contexts.data.isEmpty) JsonObject.empty.asJson
+        else
+          JsonObject(
+            ("schema", Common.ContextsUri.toSchemaUri.asJson),
+            ("data", contexts.data.asJson)
+          ).asJson
+      }
 
-  implicit val contextsDecoder: Decoder[Contexts] = deriveDecoder[Contexts].recover {
-    case DecodingFailure(_, DownField("data") :: _) => Contexts(List())
+    implicit val contextsDecoder: Decoder[Contexts] = Decoder.forProduct1("data")(apply).recover {
+      case DecodingFailure(_, DownField("data") :: _) => Contexts(List())
+    }
   }
 
   /**

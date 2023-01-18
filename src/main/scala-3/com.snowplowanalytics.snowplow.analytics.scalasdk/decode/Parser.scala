@@ -12,61 +12,35 @@
  */
 package com.snowplowanalytics.snowplow.analytics.scalasdk.decode
 
-import shapeless._
-import shapeless.ops.record._
-import shapeless.ops.hlist._
 import cats.data.{NonEmptyList, Validated}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.{FieldNumberMismatch, NotTSV, RowDecodingError}
+import scala.deriving._
+import scala.compiletime._
 
 private[scalasdk] trait Parser[A] extends Serializable {
-
-  /** Heterogeneous TSV values */
-  type HTSV <: HList
 
   /** List of field names defined on `A` */
   def knownKeys: List[Key] // TODO: should be a part of `RowDecoder`
 
-  /** Evidence allowing to transform TSV line into `HList` */
-  protected def decoder: RowDecoder[HTSV]
-
-  /** Evidence that `A` is isomorphic to `HTSV` */
-  protected def generic: Generic.Aux[A, HTSV]
+  protected def decoder: RowDecoder[A]
 
   def parse(row: String): DecodeResult[A] = {
     val values = row.split("\t", -1)
-    if (values.length == 1)
-      Validated.Invalid(NotTSV)
-    else if (values.length != knownKeys.length)
-      Validated.Invalid(FieldNumberMismatch(values.length))
+    if (values.length == 1) Validated.Invalid(NotTSV)
+    else if (values.length != knownKeys.length) Validated.Invalid(FieldNumberMismatch(values.length))
     else {
       val zipped = knownKeys.zip(values)
-      val decoded = decoder(zipped).leftMap(e => RowDecodingError(e))
-      decoded.map(decodedValue => generic.from(decodedValue))
+      decoder(zipped).leftMap(e => RowDecodingError(e))
     }
   }
 }
 
 object Parser {
   sealed trait DeriveParser[A] {
-
-    /**
-     * Get instance of parser after all evidences are given
-     * @tparam R full class representation with field names and types
-     * @tparam K evidence of field names
-     * @tparam L evidence of field types
-     */
-    def get[R <: HList, K <: HList, L <: HList](
-      implicit lgen: LabelledGeneric.Aux[A, R],
-      keys: Keys.Aux[R, K],
-      gen: Generic.Aux[A, L],
-      toTraversableAux: ToTraversable.Aux[K, List, Symbol],
-      rowDecoder: RowDecoder[L]
-    ): Parser[A] =
+    inline def get(implicit mirror: Mirror.ProductOf[A]): Parser[A] =
       new Parser[A] {
-        type HTSV = L
-        val knownKeys: List[Symbol] = keys.apply.toList[Symbol]
-        val decoder: RowDecoder[L] = rowDecoder
-        val generic: Generic.Aux[A, L] = gen
+        val knownKeys: List[Symbol] = constValueTuple[mirror.MirroredElemLabels].toArray.map(s => Symbol(s.toString)).toList
+        val decoder: RowDecoder[A] = RowDecoder.of[A]
       }
   }
 
