@@ -35,15 +35,23 @@ object BuildSettings {
 
   // Basic settings for our app
   lazy val buildSettings = Seq(
-    scalacOptions      := Seq(
+    scalacOptions      ++= Seq(
       "-deprecation",
       "-encoding", "UTF-8",
       "-feature",
-      "-unchecked",
-      "-Ywarn-dead-code",
-      "-Ywarn-numeric-widen",
-      "-Ywarn-value-discard"
-    )
+      "-unchecked"
+    ),
+    scalacOptions ++= {
+      if (scalaVersion.value.startsWith("3")) {
+        Seq("-Xmax-inlines", "150")
+      } else {
+        Seq(
+          "-Ywarn-dead-code",
+          "-Ywarn-numeric-widen",
+          "-Ywarn-value-discard"
+        )
+      }
+    }
   )
 
   lazy val dynVerSettings = Seq(
@@ -67,40 +75,46 @@ object BuildSettings {
     )
   )
 
-  // If new version introduces breaking changes,
-  // clear-out mimaBinaryIssueFilters and mimaPreviousVersions.
-  // Otherwise, add previous version to set without
-  // removing other versions.
-  val mimaPreviousVersions = Set()
-
-  val mimaSettings = Seq(
-    mimaPreviousArtifacts := mimaPreviousVersions.map { organization.value %% name.value % _ },
+  // If new version introduces breaking changes, clear out the lists of previous version.
+  // Otherwise, add previous version to set without removing other versions.
+  val mimaPreviousVersionsScala2 = Set("3.0.1")
+  val mimaPreviousVersionsScala3 = Set()
+  lazy val mimaSettings = Seq(
+    mimaPreviousArtifacts := {
+      val versionsForBuild = 
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((3, _)) =>
+            mimaPreviousVersionsScala3
+          case _ =>
+            mimaPreviousVersionsScala2
+        }
+          
+      versionsForBuild.map { organization.value %% name.value % _ }
+    },
     ThisBuild / mimaFailOnNoPrevious := false,
     mimaBinaryIssueFilters ++= Seq(),
-    Test / test := {
-      mimaReportBinaryIssues.value
-      (Test / test).value
-    }
+    Test / test := (Test / test).dependsOn(mimaReportBinaryIssues).value
   )
 
   val scoverageSettings = Seq(
-    coverageMinimum := 50,
+    coverageMinimumStmtTotal := 50,
     // Excluded because of shapeless, which would generate 1000x500KB statements driving coverage OOM
     coverageExcludedFiles := """.*\/Event.*;""",
     coverageFailOnMinimum := true,
     coverageHighlighting := false,
-    (test in Test) := {
-      (coverageReport dependsOn (test in Test)).value
+    (Test / test) := {
+      (coverageReport dependsOn (Test / test)).value
     }
   )
 
   lazy val sbtSiteSettings = Seq(
-    siteSubdirName in SiteScaladoc := s"${version.value}",
-    preprocessVars in Preprocess := Map("VERSION" -> version.value)
+    SiteScaladoc / siteSubdirName := s"${version.value}",
+    Preprocess  / preprocessVars := Map("VERSION" -> version.value)
   )
 
   lazy val formattingSettings = Seq(
     scalafmtConfig    := file(".scalafmt.conf"),
     scalafmtOnCompile := true
   )
+
 }

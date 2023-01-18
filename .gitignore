@@ -12,3 +12,7 @@ project/plugins/project/
 # Vagrant
 .vagrant
 VERSION
+.bloop
+.metals
+metals.sbt
+.vscode
