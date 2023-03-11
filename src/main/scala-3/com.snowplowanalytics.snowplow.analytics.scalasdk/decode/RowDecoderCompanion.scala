@@ -20,35 +20,66 @@ import scala.deriving._
 import scala.compiletime._
 
 private[scalasdk] trait RowDecoderCompanion {
-  def tupled[L <: Tuple](implicit fromRow: RowDecoder[L]): RowDecoder[L] = fromRow
 
-  def fromFunc[L <: Tuple](f: List[(Key, String)] => RowDecodeResult[L]): RowDecoder[L] =
-    new RowDecoder[L] {
-      def apply(row: List[(Key, String)]) = f(row)
+  sealed trait DeriveRowDecoder[L] { self =>
+    def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[L]
+
+    def map[B](f: L => B): DeriveRowDecoder[B] =
+      new DeriveRowDecoder[B] {
+        def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[B] =
+          self.get(knownKeys, maxLengths).map(f)
+      }
+  }
+
+  object DeriveRowDecoder {
+    inline def of[L](implicit m: Mirror.ProductOf[L]): DeriveRowDecoder[L] = {
+      val instance = summonInline[DeriveRowDecoder[m.MirroredElemTypes]]
+      instance.map(tuple => m.fromTuple(tuple))
     }
+  }
 
-  /** Parse TSV row into HList */
-  private def parse[H: ValueDecoder, T <: Tuple: RowDecoder](row: List[(Key, String)]): RowDecodeResult[H *: T] =
+  private def parse[H: ValueDecoder, T <: Tuple](
+    key: Key,
+    tailDecoder: RowDecoder[T],
+    maxLength: Option[Int],
+    row: List[String]
+  ): RowDecodeResult[H *: T] =
     row match {
       case h :: t =>
-        val hv: RowDecodeResult[H] = ValueDecoder[H].parse(h).toValidatedNel
-        val tv: RowDecodeResult[T] = RowDecoder.tupled[T].apply(t)
+        val hv: RowDecodeResult[H] = ValueDecoder[H].parse(key, h, maxLength).toValidatedNel
+        val tv: RowDecodeResult[T] = tailDecoder.apply(t)
         (hv, tv).mapN(_ *: _)
       case Nil => UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
     }
 
-  implicit def hnilFromRow: RowDecoder[EmptyTuple] =
-    fromFunc {
-      case Nil => EmptyTuple.validNel
-      case rows => UnhandledRowDecodingError(s"No more values expected, following provided: ${rows.map(_._2).mkString(", ")}").invalidNel
+  implicit def hnilFromRow: DeriveRowDecoder[EmptyTuple] =
+    new DeriveRowDecoder[EmptyTuple] {
+      def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[EmptyTuple] =
+        new RowDecoder[EmptyTuple] {
+          def apply(row: List[String]): RowDecodeResult[EmptyTuple] =
+            row match {
+              case Nil =>
+                EmptyTuple.validNel
+              case _ =>
+                UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
+            }
+        }
     }
 
-  implicit def hconsFromRow[H: ValueDecoder, T <: Tuple: RowDecoder]: RowDecoder[H *: T] =
-    fromFunc(row => parse(row))
-
-  inline def of[A](implicit m: Mirror.ProductOf[A]) = {
-    val instance = summonInline[RowDecoder[m.MirroredElemTypes]]
-    instance.map(tuple => m.fromTuple(tuple))
-  }
+  implicit def hconsFromRow[H: ValueDecoder, T <: Tuple: DeriveRowDecoder]: DeriveRowDecoder[H *: T] =
+    new DeriveRowDecoder[H *: T] {
+      def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[H *: T] =
+        knownKeys match {
+          case key :: tailKeys =>
+            val tailDecoder = summon[DeriveRowDecoder[T]].get(tailKeys, maxLengths)
+            val maxLength = maxLengths.get(key.name)
+            new RowDecoder[H *: T] {
+              def apply(row: List[String]): RowDecodeResult[H *: T] = parse(key, tailDecoder, maxLength, row)
+            }
+          case Nil =>
+            // Shapeless type checking makes this impossible
+            throw new IllegalStateException
+        }
+    }
 
 }

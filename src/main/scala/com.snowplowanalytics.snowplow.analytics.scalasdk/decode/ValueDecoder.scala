@@ -40,42 +40,49 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodin
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 
 private[decode] trait ValueDecoder[A] {
-  def parse(column: (Key, String)): DecodedValue[A]
+  def parse(
+    key: Key,
+    value: String,
+    maxLength: Option[Int]
+  ): DecodedValue[A]
 }
 
 private[decode] object ValueDecoder {
   def apply[A](implicit readA: ValueDecoder[A]): ValueDecoder[A] = readA
 
-  def fromFunc[A](f: ((Key, String)) => DecodedValue[A]): ValueDecoder[A] =
+  def fromFunc[A](f: ((Key, String, Option[Int])) => DecodedValue[A]): ValueDecoder[A] =
     new ValueDecoder[A] {
-      def parse(field: (Key, String)): DecodedValue[A] = f(field)
+      def parse(
+        key: Key,
+        value: String,
+        maxLength: Option[Int]
+      ): DecodedValue[A] = f((key, value, maxLength))
     }
 
   implicit final val stringColumnDecoder: ValueDecoder[String] =
     fromFunc[String] {
-      case (key, value) =>
-        if (value.length > FIELD_SIZES.getOrElse(key.name, Int.MaxValue))
-          InvalidValue(key,
-                       value,
-                       s"Field ${key.name} longer than maximum allowed size ${FIELD_SIZES.getOrElse(key.name, Int.MaxValue)}"
-          ).asLeft
-        else if (value.isEmpty) InvalidValue(key, value, s"Field ${key.name} cannot be empty").asLeft
-        else value.asRight
+      case (key, value, Some(maxLength)) if value.length > maxLength =>
+        value.substring(0, maxLength).asRight
+      case (key, "", _) =>
+        InvalidValue(key, "", s"Field ${key.name} cannot be empty").asLeft
+      case (_, value, _) =>
+        value.asRight
     }
 
   implicit final val stringOptionColumnDecoder: ValueDecoder[Option[String]] =
     fromFunc[Option[String]] {
-      case (k, value) =>
-        if (value.length > FIELD_SIZES.getOrElse(k.name, Int.MaxValue))
-          InvalidValue(k, value, s"Field ${k.name} longer than maximum allowed size ${FIELD_SIZES.getOrElse(k.name, Int.MaxValue)}").asLeft
-        else if (value.isEmpty) none[String].asRight
-        else value.some.asRight
+      case (key, value, Some(maxLength)) if value.length > maxLength =>
+        value.substring(0, maxLength).some.asRight
+      case (_, "", _) =>
+        none[String].asRight
+      case (_, value, _) =>
+        value.some.asRight
 
     }
 
   implicit final val intColumnDecoder: ValueDecoder[Option[Int]] =
     fromFunc[Option[Int]] {
-      case (key, value) =>
+      case (key, value, _) =>
         if (value.isEmpty) none[Int].asRight
         else
           try value.toInt.some.asRight
@@ -87,7 +94,7 @@ private[decode] object ValueDecoder {
 
   implicit final val uuidColumnDecoder: ValueDecoder[UUID] =
     fromFunc[UUID] {
-      case (key, value) =>
+      case (key, value, _) =>
         if (value.isEmpty)
           InvalidValue(key, value, s"Field ${key.name} cannot be empty").asLeft
         else
@@ -100,7 +107,7 @@ private[decode] object ValueDecoder {
 
   implicit final val boolColumnDecoder: ValueDecoder[Option[Boolean]] =
     fromFunc[Option[Boolean]] {
-      case (key, value) =>
+      case (key, value, _) =>
         value match {
           case "0" => false.some.asRight
           case "1" => true.some.asRight
@@ -111,7 +118,7 @@ private[decode] object ValueDecoder {
 
   implicit final val doubleColumnDecoder: ValueDecoder[Option[Double]] =
     fromFunc[Option[Double]] {
-      case (key, value) =>
+      case (key, value, _) =>
         if (value.isEmpty)
           none[Double].asRight
         else
@@ -124,7 +131,7 @@ private[decode] object ValueDecoder {
 
   implicit final val instantColumnDecoder: ValueDecoder[Instant] =
     fromFunc[Instant] {
-      case (key, value) =>
+      case (key, value, _) =>
         if (value.isEmpty)
           InvalidValue(key, value, s"Field ${key.name} cannot be empty").asLeft
         else {
@@ -139,7 +146,7 @@ private[decode] object ValueDecoder {
 
   implicit final val instantOptionColumnDecoder: ValueDecoder[Option[Instant]] =
     fromFunc[Option[Instant]] {
-      case (key, value) =>
+      case (key, value, _) =>
         if (value.isEmpty)
           none[Instant].asRight[RowDecodingErrorInfo]
         else {
@@ -154,7 +161,7 @@ private[decode] object ValueDecoder {
 
   implicit final val unstructuredJson: ValueDecoder[UnstructEvent] =
     fromFunc[UnstructEvent] {
-      case (key, value) =>
+      case (key, value, _) =>
         def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, value, error.show)
         if (value.isEmpty)
           UnstructEvent(None).asRight[RowDecodingErrorInfo]
@@ -172,7 +179,7 @@ private[decode] object ValueDecoder {
 
   implicit final val contexts: ValueDecoder[Contexts] =
     fromFunc[Contexts] {
-      case (key, value) =>
+      case (key, value, _) =>
         def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, value, error.show)
         if (value.isEmpty)
           Contexts(List()).asRight[RowDecodingErrorInfo]

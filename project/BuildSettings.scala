@@ -18,6 +18,7 @@ import Keys._
 
 // Mima plugin
 import com.typesafe.tools.mima.plugin.MimaKeys._
+import com.typesafe.tools.mima.core.{ProblemFilters, DirectMissingMethodProblem}
 
 // Scoverage plugin
 import scoverage.ScoverageKeys._
@@ -92,7 +93,10 @@ object BuildSettings {
       versionsForBuild.map { organization.value %% name.value % _ }
     },
     ThisBuild / mimaFailOnNoPrevious := false,
-    mimaBinaryIssueFilters ++= Seq(),
+    mimaBinaryIssueFilters ++= Seq(
+      // DeriveParser should not have been public in previous versions
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.snowplowanalytics.snowplow.analytics.scalasdk.decode.Parser#DeriveParser.get")
+    ),
     Test / test := (Test / test).dependsOn(mimaReportBinaryIssues).value
   )
 
@@ -101,10 +105,7 @@ object BuildSettings {
     // Excluded because of shapeless, which would generate 1000x500KB statements driving coverage OOM
     coverageExcludedFiles := """.*\/Event.*;""",
     coverageFailOnMinimum := true,
-    coverageHighlighting := false,
-    (Test / test) := {
-      (coverageReport dependsOn (Test / test)).value
-    }
+    coverageHighlighting := false
   )
 
   lazy val sbtSiteSettings = Seq(

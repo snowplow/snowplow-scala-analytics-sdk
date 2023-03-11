@@ -16,12 +16,13 @@ import cats.data.NonEmptyList
 import io.circe.{Decoder, DecodingFailure, Json, parser}
 import io.circe.syntax._
 import io.circe.parser._
+import com.snowplowanalytics.snowplow.analytics.scalasdk.validate.FIELD_SIZES
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 import org.specs2.Specification
 
 import java.time.Instant
-import cats.data.Validated.Invalid
+import cats.data.Validated.{Invalid, Valid}
 
 import java.util.UUID
 
@@ -31,7 +32,6 @@ class ParsingErrorSpec extends Specification {
     works correctly with NotTSV error $e1
     works correctly with FieldNumberMismatch error $e2
     works correctly with RowDecodingError $e3
-    works correctly with TSV oversized columns $e4
     works correctly with JSON oversized columns $e5
   """
 
@@ -101,19 +101,14 @@ class ParsingErrorSpec extends Specification {
   }
 
   def e4 = {
+    // no field length validation since version 3.1.0
     val badEvent = Event.minimal(UUID.randomUUID(), Instant.now(), "v" * 101, "v_etl").copy(geo_country = Some("sssss"))
-    val expected = Invalid(
-      RowDecodingError(
-        NonEmptyList.of(
-          InvalidValue(Symbol("v_collector"), "v" * 101, s"Field v_collector longer than maximum allowed size 100"),
-          InvalidValue(Symbol("geo_country"), "sssss", s"Field geo_country longer than maximum allowed size 2")
-        )
-      )
-    )
-    Event.parse(badEvent.toTsv) must beEqualTo(expected)
+    (Event.parser(FIELD_SIZES).parse(badEvent.toTsv) must haveClass[Valid[_]]) and
+      (Event.parser(Map.empty).parse(badEvent.toTsv) must haveClass[Valid[_]])
   }
 
   def e5 =
+    // no field length validation since version 3.1.0
     parser.decode[Event](s"""{
         "app_id" :  "bbb05861-0f11-4986-b23b-87e6e22609b1",
         "collector_tstamp" : "2021-12-06T15:47:07.920430Z",
@@ -124,9 +119,7 @@ class ParsingErrorSpec extends Specification {
         "contexts" : {},
         "unstruct_event": {},
         "derived_contexts" : {}
-      }""".stripMargin) must beEqualTo(
-      Left(DecodingFailure(s"Field v_collector longer than maximum allowed size 100", List()))
-    )
+      }""".stripMargin) must beRight
 
   private def parseJson(jsonStr: String): Json =
     parse(jsonStr).getOrElse(throw new RuntimeException("Failed to parse expected JSON."))

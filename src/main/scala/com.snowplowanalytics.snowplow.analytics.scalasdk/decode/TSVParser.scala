@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2023 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,15 +10,9 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.snowplow.analytics.scalasdk
-package decode
+package com.snowplowanalytics.snowplow.analytics.scalasdk.decode
 
-private[scalasdk] trait RowDecoder[L] extends Serializable { self =>
-  def apply(row: List[String]): RowDecodeResult[L]
-  def map[B](f: L => B): RowDecoder[B] =
-    new RowDecoder[B] {
-      def apply(row: List[String]): RowDecodeResult[B] = self.apply(row).map(f)
-    }
+/** Parser for a TSV-encoded string */
+trait TSVParser[A] extends Serializable {
+  def parse(row: String): DecodeResult[A]
 }
-
-object RowDecoder extends RowDecoderCompanion
