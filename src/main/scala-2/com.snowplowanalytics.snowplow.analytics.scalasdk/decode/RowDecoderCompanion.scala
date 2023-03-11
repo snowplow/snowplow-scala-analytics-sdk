@@ -21,29 +21,56 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodin
 private[scalasdk] trait RowDecoderCompanion {
   import HList.ListCompat._
 
-  def apply[L <: HList](implicit fromRow: RowDecoder[L]): RowDecoder[L] = fromRow
+  sealed trait DeriveRowDecoder[L] {
+    def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[L]
+  }
 
-  def fromFunc[L <: HList](f: List[(Key, String)] => RowDecodeResult[L]): RowDecoder[L] =
-    new RowDecoder[L] {
-      def apply(row: List[(Key, String)]) = f(row)
-    }
+  object DeriveRowDecoder {
+    def apply[L](implicit fromRow: DeriveRowDecoder[L]): DeriveRowDecoder[L] = fromRow
+  }
 
   /** Parse TSV row into HList */
-  private def parse[H: ValueDecoder, T <: HList: RowDecoder](row: List[(Key, String)]): RowDecodeResult[H :: T] =
+  private def parse[H: ValueDecoder, T <: HList](
+    key: Key,
+    tailDecoder: RowDecoder[T],
+    maxLength: Option[Int],
+    row: List[String]
+  ): RowDecodeResult[H :: T] =
     row match {
       case h :: t =>
-        val hv: RowDecodeResult[H] = ValueDecoder[H].parse(h).toValidatedNel
-        val tv: RowDecodeResult[T] = RowDecoder[T].apply(t)
+        val hv: RowDecodeResult[H] = ValueDecoder[H].parse(key, h, maxLength).toValidatedNel
+        val tv: RowDecodeResult[T] = tailDecoder.apply(t)
         (hv, tv).mapN(_ :: _)
       case Nil => UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
     }
 
-  implicit def hnilFromRow: RowDecoder[HNil] =
-    fromFunc {
-      case Nil => HNil.validNel
-      case rows => UnhandledRowDecodingError(s"No more values expected, following provided: ${rows.map(_._2).mkString(", ")}").invalidNel
+  implicit def hnilFromRow: DeriveRowDecoder[HNil] =
+    new DeriveRowDecoder[HNil] {
+      def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[HNil] =
+        new RowDecoder[HNil] {
+          def apply(row: List[String]): RowDecodeResult[HNil] =
+            row match {
+              case Nil =>
+                HNil.validNel
+              case _ =>
+                UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
+            }
+        }
     }
 
-  implicit def hconsFromRow[H: ValueDecoder, T <: HList: RowDecoder]: RowDecoder[H :: T] =
-    fromFunc(row => parse(row))
+  implicit def hconsFromRow[H: ValueDecoder, T <: HList: DeriveRowDecoder]: DeriveRowDecoder[H :: T] =
+    new DeriveRowDecoder[H :: T] {
+      def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[H :: T] =
+        knownKeys match {
+          case key :: tailKeys =>
+            val tailDecoder = DeriveRowDecoder.apply[T].get(tailKeys, maxLengths)
+            val maxLength = maxLengths.get(key.name)
+            new RowDecoder[H :: T] {
+              def apply(row: List[String]): RowDecodeResult[H :: T] = parse(key, tailDecoder, maxLength, row)
+            }
+          case Nil =>
+            // Shapeless type checking makes this impossible
+            throw new IllegalStateException
+        }
+    }
 }

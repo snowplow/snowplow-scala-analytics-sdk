@@ -14,10 +14,10 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 package decode
 
 private[scalasdk] trait RowDecoder[L] extends Serializable { self =>
-  def apply(row: List[(Key, String)]): RowDecodeResult[L]
+  def apply(row: List[String]): RowDecodeResult[L]
   def map[B](f: L => B): RowDecoder[B] =
     new RowDecoder[B] {
-      def apply(row: List[(Key, String)]): RowDecodeResult[B] = self.apply(row).map(f)
+      def apply(row: List[String]): RowDecodeResult[B] = self.apply(row).map(f)
     }
 }
 

@@ -42,37 +42,37 @@ class ValueDecoderSpec extends Specification {
 
   "The ValueDecoder class" should {
     "parse String and Option[String] values" in {
-      ValueDecoder[String].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
-      ValueDecoder[String].parse(Symbol("key"), "value") mustEqual "value".asRight
-      ValueDecoder[Option[String]].parse(Symbol("key"), "") mustEqual None.asRight
-      ValueDecoder[Option[String]].parse(Symbol("key"), "value") mustEqual Some("value").asRight
+      ValueDecoder[String].parse(Symbol("key"), "", None) mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
+      ValueDecoder[String].parse(Symbol("key"), "value", None) mustEqual "value".asRight
+      ValueDecoder[Option[String]].parse(Symbol("key"), "", None) mustEqual None.asRight
+      ValueDecoder[Option[String]].parse(Symbol("key"), "value", None) mustEqual Some("value").asRight
     }
 
     "parse Option[Int] values" in {
-      ValueDecoder[Option[Int]].parse(Symbol("key"), "") mustEqual None.asRight
-      ValueDecoder[Option[Int]].parse(Symbol("key"), "42") mustEqual Some(42).asRight
-      ValueDecoder[Option[Int]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
-                                                                                     "value",
-                                                                                     "Cannot parse key key into integer"
+      ValueDecoder[Option[Int]].parse(Symbol("key"), "", None) mustEqual None.asRight
+      ValueDecoder[Option[Int]].parse(Symbol("key"), "42", None) mustEqual Some(42).asRight
+      ValueDecoder[Option[Int]].parse(Symbol("key"), "value", None) mustEqual InvalidValue(Symbol("key"),
+                                                                                           "value",
+                                                                                           "Cannot parse key key into integer"
       ).asLeft
     }
 
     "parse UUID values" in {
-      ValueDecoder[UUID].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
-      ValueDecoder[UUID].parse(Symbol("key"), "d2161fd1-ffed-41df-ac3e-a729012105f5") mustEqual UUID
+      ValueDecoder[UUID].parse(Symbol("key"), "", None) mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
+      ValueDecoder[UUID].parse(Symbol("key"), "d2161fd1-ffed-41df-ac3e-a729012105f5", None) mustEqual UUID
         .fromString("d2161fd1-ffed-41df-ac3e-a729012105f5")
         .asRight
-      ValueDecoder[UUID].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
-                                                                              "value",
-                                                                              "Cannot parse key key into UUID"
+      ValueDecoder[UUID].parse(Symbol("key"), "value", None) mustEqual InvalidValue(Symbol("key"),
+                                                                                    "value",
+                                                                                    "Cannot parse key key into UUID"
       ).asLeft
     }
 
     "parse Option[Boolean] values" in {
-      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "") mustEqual None.asRight
-      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "0") mustEqual Some(false).asRight
-      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "1") mustEqual Some(true).asRight
-      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "value") mustEqual InvalidValue(
+      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "", None) mustEqual None.asRight
+      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "0", None) mustEqual Some(false).asRight
+      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "1", None) mustEqual Some(true).asRight
+      ValueDecoder[Option[Boolean]].parse(Symbol("key"), "value", None) mustEqual InvalidValue(
         Symbol("key"),
         "value",
         "Cannot parse key key into boolean"
@@ -80,26 +80,27 @@ class ValueDecoderSpec extends Specification {
     }
 
     "parse Option[Double] values" in {
-      ValueDecoder[Option[Double]].parse(Symbol("key"), "") mustEqual None.asRight
-      ValueDecoder[Option[Double]].parse(Symbol("key"), "42.5") mustEqual Some(42.5).asRight
-      ValueDecoder[Option[Double]].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
-                                                                                        "value",
-                                                                                        "Cannot parse key key into double"
+      ValueDecoder[Option[Double]].parse(Symbol("key"), "", None) mustEqual None.asRight
+      ValueDecoder[Option[Double]].parse(Symbol("key"), "42.5", None) mustEqual Some(42.5).asRight
+      ValueDecoder[Option[Double]].parse(Symbol("key"), "value", None) mustEqual InvalidValue(Symbol("key"),
+                                                                                              "value",
+                                                                                              "Cannot parse key key into double"
       ).asLeft
     }
 
     "parse Instant and Option[Instant] values" in {
-      ValueDecoder[Instant].parse(Symbol("key"), "") mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
-      ValueDecoder[Instant].parse(Symbol("key"), "2013-11-26 00:03:57.885") mustEqual Instant.parse("2013-11-26T00:03:57.885Z").asRight
-      ValueDecoder[Instant].parse(Symbol("key"), "value") mustEqual InvalidValue(Symbol("key"),
-                                                                                 "value",
-                                                                                 "Cannot parse key key into datetime"
+      ValueDecoder[Instant].parse(Symbol("key"), "", None) mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
+      ValueDecoder[Instant]
+        .parse(Symbol("key"), "2013-11-26 00:03:57.885", None) mustEqual Instant.parse("2013-11-26T00:03:57.885Z").asRight
+      ValueDecoder[Instant].parse(Symbol("key"), "value", None) mustEqual InvalidValue(Symbol("key"),
+                                                                                       "value",
+                                                                                       "Cannot parse key key into datetime"
       ).asLeft
-      ValueDecoder[Option[Instant]].parse(Symbol("key"), "") mustEqual None.asRight
-      ValueDecoder[Option[Instant]].parse(Symbol("key"), "2013-11-26 00:03:57.885") mustEqual Some(
+      ValueDecoder[Option[Instant]].parse(Symbol("key"), "", None) mustEqual None.asRight
+      ValueDecoder[Option[Instant]].parse(Symbol("key"), "2013-11-26 00:03:57.885", None) mustEqual Some(
         Instant.parse("2013-11-26T00:03:57.885Z")
       ).asRight
-      ValueDecoder[Option[Instant]].parse(Symbol("key"), "value") mustEqual InvalidValue(
+      ValueDecoder[Option[Instant]].parse(Symbol("key"), "value", None) mustEqual InvalidValue(
         Symbol("key"),
         "value",
         "Cannot parse key key into datetime"
@@ -157,8 +158,8 @@ class ValueDecoderSpec extends Specification {
           }
         ]
       }"""
-      ValueDecoder[Contexts].parse(Symbol("key"), "") mustEqual Contexts(List()).asRight
-      ValueDecoder[Contexts].parse(Symbol("key"), validContexts) mustEqual Contexts(
+      ValueDecoder[Contexts].parse(Symbol("key"), "", None) mustEqual Contexts(List()).asRight
+      ValueDecoder[Contexts].parse(Symbol("key"), validContexts, None) mustEqual Contexts(
         List(
           SelfDescribingData(
             SchemaKey(
@@ -178,7 +179,7 @@ class ValueDecoderSpec extends Specification {
           )
         )
       ).asRight
-      ValueDecoder[Contexts].parse(Symbol("key"), invalidPayloadContexts) mustEqual InvalidValue(
+      ValueDecoder[Contexts].parse(Symbol("key"), invalidPayloadContexts, None) mustEqual InvalidValue(
         Symbol("key"),
         invalidPayloadContexts,
         "Unknown payload: iglu:invalid/schema/jsonschema/1-0-0"
@@ -210,8 +211,8 @@ class ValueDecoderSpec extends Specification {
           }
         }
       }"""
-      ValueDecoder[UnstructEvent].parse(Symbol("key"), "") mustEqual UnstructEvent(None).asRight
-      ValueDecoder[UnstructEvent].parse(Symbol("key"), validUnstruct) mustEqual UnstructEvent(
+      ValueDecoder[UnstructEvent].parse(Symbol("key"), "", None) mustEqual UnstructEvent(None).asRight
+      ValueDecoder[UnstructEvent].parse(Symbol("key"), validUnstruct, None) mustEqual UnstructEvent(
         Some(
           SelfDescribingData(
             SchemaKey(
@@ -228,7 +229,7 @@ class ValueDecoderSpec extends Specification {
           )
         )
       ).asRight
-      ValueDecoder[UnstructEvent].parse(Symbol("key"), invalidPayloadUnstruct) mustEqual InvalidValue(
+      ValueDecoder[UnstructEvent].parse(Symbol("key"), invalidPayloadUnstruct, None) mustEqual InvalidValue(
         Symbol("key"),
         invalidPayloadUnstruct,
         "Unknown payload: iglu:invalid/schema/jsonschema/1-0-0"

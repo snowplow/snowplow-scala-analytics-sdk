@@ -20,7 +20,7 @@ import scala.compiletime._
 private[scalasdk] trait Parser[A] extends Serializable {
 
   /** List of field names defined on `A` */
-  def knownKeys: List[Key] // TODO: should be a part of `RowDecoder`
+  def knownKeys: List[Key]
 
   protected def decoder: RowDecoder[A]
 
@@ -28,19 +28,16 @@ private[scalasdk] trait Parser[A] extends Serializable {
     val values = row.split("\t", -1)
     if (values.length == 1) Validated.Invalid(NotTSV)
     else if (values.length != knownKeys.length) Validated.Invalid(FieldNumberMismatch(values.length))
-    else {
-      val zipped = knownKeys.zip(values)
-      decoder(zipped).leftMap(e => RowDecodingError(e))
-    }
+    else decoder(values.toList).leftMap(e => RowDecodingError(e))
   }
 }
 
 object Parser {
   sealed trait DeriveParser[A] {
-    inline def get(implicit mirror: Mirror.ProductOf[A]): Parser[A] =
+    inline def get(maxLengths: Map[String, Int])(implicit mirror: Mirror.ProductOf[A]): Parser[A] =
       new Parser[A] {
         val knownKeys: List[Symbol] = constValueTuple[mirror.MirroredElemLabels].toArray.map(s => Symbol(s.toString)).toList
-        val decoder: RowDecoder[A] = RowDecoder.of[A]
+        val decoder: RowDecoder[A] = RowDecoder.DeriveRowDecoder.of[A].get(knownKeys, maxLengths)
       }
   }
 

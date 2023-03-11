@@ -15,7 +15,7 @@ jobs:
           java-version: 11
 
       - name: Run tests
-        run: sbt coverage +test
+        run: sbt 'set coverageEnabled := true' +test
 
       - name: Aggregate coverage data
         run: sbt coverageAggregate

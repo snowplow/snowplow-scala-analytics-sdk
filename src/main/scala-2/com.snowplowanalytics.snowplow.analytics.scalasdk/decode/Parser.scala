@@ -24,7 +24,7 @@ private[scalasdk] trait Parser[A] extends Serializable {
   type HTSV <: HList
 
   /** List of field names defined on `A` */
-  def knownKeys: List[Key] // TODO: should be a part of `RowDecoder`
+  def knownKeys: List[Key]
 
   /** Evidence allowing to transform TSV line into `HList` */
   protected def decoder: RowDecoder[HTSV]
@@ -39,15 +39,14 @@ private[scalasdk] trait Parser[A] extends Serializable {
     else if (values.length != knownKeys.length)
       Validated.Invalid(FieldNumberMismatch(values.length))
     else {
-      val zipped = knownKeys.zip(values)
-      val decoded = decoder(zipped).leftMap(e => RowDecodingError(e))
+      val decoded = decoder(values.toList).leftMap(e => RowDecodingError(e))
       decoded.map(decodedValue => generic.from(decodedValue))
     }
   }
 }
 
 object Parser {
-  sealed trait DeriveParser[A] {
+  private[scalasdk] sealed trait DeriveParser[A] {
 
     /**
      * Get instance of parser after all evidences are given
@@ -56,16 +55,18 @@ object Parser {
      * @tparam L evidence of field types
      */
     def get[R <: HList, K <: HList, L <: HList](
+      maxLengths: Map[String, Int]
+    )(
       implicit lgen: LabelledGeneric.Aux[A, R],
       keys: Keys.Aux[R, K],
       gen: Generic.Aux[A, L],
       toTraversableAux: ToTraversable.Aux[K, List, Symbol],
-      rowDecoder: RowDecoder[L]
+      deriveRowDecoder: RowDecoder.DeriveRowDecoder[L]
     ): Parser[A] =
       new Parser[A] {
         type HTSV = L
-        val knownKeys: List[Symbol] = keys().toList[Symbol]
-        val decoder: RowDecoder[L] = rowDecoder
+        val knownKeys: List[Symbol] = keys().toList
+        val decoder: RowDecoder[L] = deriveRowDecoder.get(knownKeys, maxLengths)
         val generic: Generic.Aux[A, L] = gen
       }
   }
