@@ -44,12 +44,24 @@ class ValueDecoderSpec extends Specification {
     "parse String and Option[String] values" in {
       ValueDecoder[String].parse(Symbol("key"), "", None) mustEqual InvalidValue(Symbol("key"), "", "Field key cannot be empty").asLeft
       ValueDecoder[String].parse(Symbol("key"), "value", None) mustEqual "value".asRight
+      ValueDecoder[String].parse(Symbol("key"), "value", Some(5)) mustEqual "value".asRight
+      ValueDecoder[String].parse(Symbol("key"), "value", Some(4)) mustEqual InvalidValue(Symbol("key"),
+                                                                                         "value",
+                                                                                         "Field key longer than maximum allowed size 4"
+      ).asLeft
       ValueDecoder[Option[String]].parse(Symbol("key"), "", None) mustEqual None.asRight
       ValueDecoder[Option[String]].parse(Symbol("key"), "value", None) mustEqual Some("value").asRight
+      ValueDecoder[Option[String]].parse(Symbol("key"), "value", Some(5)) mustEqual Some("value").asRight
+      ValueDecoder[Option[String]].parse(Symbol("key"), "value", Some(4)) mustEqual InvalidValue(
+        Symbol("key"),
+        "value",
+        "Field key longer than maximum allowed size 4"
+      ).asLeft
     }
 
     "parse Option[Int] values" in {
       ValueDecoder[Option[Int]].parse(Symbol("key"), "", None) mustEqual None.asRight
+      ValueDecoder[Option[Int]].parse(Symbol("key"), "42", None) mustEqual Some(42).asRight
       ValueDecoder[Option[Int]].parse(Symbol("key"), "42", None) mustEqual Some(42).asRight
       ValueDecoder[Option[Int]].parse(Symbol("key"), "value", None) mustEqual InvalidValue(Symbol("key"),
                                                                                            "value",

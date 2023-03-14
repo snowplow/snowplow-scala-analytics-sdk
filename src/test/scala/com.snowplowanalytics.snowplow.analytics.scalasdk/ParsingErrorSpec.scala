@@ -32,6 +32,7 @@ class ParsingErrorSpec extends Specification {
     works correctly with FieldNumberMismatch error $e2
     works correctly with RowDecodingError $e3
     works correctly with TSV oversized columns $e4
+    works correctly with JSON oversized columns $e5
   """
 
   def e1 = {
@@ -112,6 +113,20 @@ class ParsingErrorSpec extends Specification {
     (Event.parse(badEvent.toTsv, validateFieldLengths = true) must beEqualTo(expected)) and
       (Event.parse(badEvent.toTsv, validateFieldLengths = false) must haveClass[Valid[_]])
   }
+
+  def e5 =
+    // no field length validation since version 3.1.0
+    parser.decode[Event](s"""{
+        "app_id" :  "bbb05861-0f11-4986-b23b-87e6e22609b1",
+        "collector_tstamp" : "2021-12-06T15:47:07.920430Z",
+        "event_id" : "bbb05861-0f11-4986-b23b-87e6e22609be",
+        "v_collector" : "${"v" * 101}",
+        "v_etl" : "v_etl",
+        "geo_country" : "sssss",
+        "contexts" : {},
+        "unstruct_event": {},
+        "derived_contexts" : {}
+      }""".stripMargin) must beRight
 
   private def parseJson(jsonStr: String): Json =
     parse(jsonStr).getOrElse(throw new RuntimeException("Failed to parse expected JSON."))
