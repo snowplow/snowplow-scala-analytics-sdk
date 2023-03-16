@@ -62,7 +62,7 @@ private[decode] object ValueDecoder {
   implicit final val stringColumnDecoder: ValueDecoder[String] =
     fromFunc[String] {
       case (key, value, Some(maxLength)) if value.length > maxLength =>
-        InvalidValue(key, value, s"Field ${key.name} longer than maximum allowed size $maxLength").asLeft
+        value.substring(0, maxLength).asRight
       case (key, "", _) =>
         InvalidValue(key, "", s"Field ${key.name} cannot be empty").asLeft
       case (_, value, _) =>
@@ -72,7 +72,7 @@ private[decode] object ValueDecoder {
   implicit final val stringOptionColumnDecoder: ValueDecoder[Option[String]] =
     fromFunc[Option[String]] {
       case (key, value, Some(maxLength)) if value.length > maxLength =>
-        InvalidValue(key, value, s"Field ${key.name} longer than maximum allowed size $maxLength").asLeft
+        value.substring(0, maxLength).some.asRight
       case (_, "", _) =>
         none[String].asRight
       case (_, value, _) =>

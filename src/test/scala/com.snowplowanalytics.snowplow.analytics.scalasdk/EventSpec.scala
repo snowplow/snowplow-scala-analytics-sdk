@@ -39,6 +39,7 @@ import org.specs2.ScalaCheck
 import org.scalacheck.Prop.forAll
 
 // This library
+import com.snowplowanalytics.snowplow.analytics.scalasdk.validate.FIELD_SIZES
 import com.snowplowanalytics.snowplow.analytics.scalasdk.SnowplowEvent._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
@@ -158,8 +159,8 @@ class EventSpec extends Specification with ScalaCheck {
       val eventValues = input.unzip._2.mkString("\t")
 
       val event1 = Event.parse(eventValues)
-      val event2 = Event.parse(eventValues, validateFieldLengths = true)
-      val event3 = Event.parse(eventValues, validateFieldLengths = false)
+      val event2 = Event.parser().parse(eventValues)
+      val event3 = Event.parser(FIELD_SIZES).parse(eventValues)
 
       // Case class must be processed as expected, for all varieties of the parser
       event1 mustEqual Valid(expected)
@@ -1142,29 +1143,26 @@ class EventSpec extends Specification with ScalaCheck {
       tempJson.as[Temp].map(_.event) must beRight(event)
     }
 
-    "optionally reject events with oversized fields" in {
+    "optionally truncate events with oversized fields" in {
 
       val input = baseInput.map {
         case ("app_id", _) => ("app_id", "x" * 256)
         case other => other
       }
 
-      val expected = baseExpected.copy(
+      val expected1 = baseExpected.copy(
         app_id = Some("x" * 256)
+      )
+
+      val expected2 = baseExpected.copy(
+        app_id = Some("x" * 10)
       )
 
       val eventValues = input.unzip._2.mkString("\t")
 
-      // Parsing must be valid with field length validation disabled
-      Event.parse(eventValues) mustEqual Valid(expected)
-      Event.parse(eventValues, validateFieldLengths = false) mustEqual Valid(expected)
-
-      val decodingError = RowDecodingError(
-        NonEmptyList.of(
-          InvalidValue(Symbol("app_id"), "x" * 256, "Field app_id longer than maximum allowed size 255")
-        )
-      )
-      Event.parse(eventValues, validateFieldLengths = true) mustEqual Invalid(decodingError)
+      Event.parse(eventValues) mustEqual Valid(expected1)
+      Event.parser().parse(eventValues) mustEqual Valid(expected1)
+      Event.parser(Map("app_id" -> 10)).parse(eventValues) mustEqual Valid(expected2)
     }
   }
 

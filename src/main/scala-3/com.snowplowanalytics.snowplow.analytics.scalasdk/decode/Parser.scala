@@ -17,26 +17,31 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.{FieldNumb
 import scala.deriving._
 import scala.compiletime._
 
-private[scalasdk] trait Parser[A] extends Serializable {
+private[scalasdk] trait Parser[A] extends TSVParser[A] {
 
   /** List of field names defined on `A` */
-  def knownKeys: List[Key]
+  def expectedNumFields: Int
 
   protected def decoder: RowDecoder[A]
 
   def parse(row: String): DecodeResult[A] = {
     val values = row.split("\t", -1)
     if (values.length == 1) Validated.Invalid(NotTSV)
-    else if (values.length != knownKeys.length) Validated.Invalid(FieldNumberMismatch(values.length))
+    else if (values.length != expectedNumFields) Validated.Invalid(FieldNumberMismatch(values.length))
     else decoder(values.toList).leftMap(e => RowDecodingError(e))
   }
 }
 
 object Parser {
-  sealed trait DeriveParser[A] {
-    inline def get(maxLengths: Map[String, Int])(implicit mirror: Mirror.ProductOf[A]): Parser[A] =
+
+  private[scalasdk] sealed trait DeriveParser[A] {
+    inline def knownKeys(implicit mirror: Mirror.ProductOf[A]): List[String] =
+      constValueTuple[mirror.MirroredElemLabels].toArray.map(_.toString).toList
+
+    inline def get(maxLengths: Map[String, Int])(implicit mirror: Mirror.ProductOf[A]): TSVParser[A] =
       new Parser[A] {
         val knownKeys: List[Symbol] = constValueTuple[mirror.MirroredElemLabels].toArray.map(s => Symbol(s.toString)).toList
+        val expectedNumFields = knownKeys.length
         val decoder: RowDecoder[A] = RowDecoder.DeriveRowDecoder.of[A].get(knownKeys, maxLengths)
       }
   }

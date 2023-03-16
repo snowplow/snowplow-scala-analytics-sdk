@@ -18,13 +18,12 @@ import shapeless.ops.hlist._
 import cats.data.{NonEmptyList, Validated}
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.{FieldNumberMismatch, NotTSV, RowDecodingError}
 
-private[scalasdk] trait Parser[A] extends Serializable {
+private[scalasdk] trait Parser[A] extends TSVParser[A] {
 
   /** Heterogeneous TSV values */
   type HTSV <: HList
 
-  /** List of field names defined on `A` */
-  def knownKeys: List[Key]
+  def expectedNumFields: Int
 
   /** Evidence allowing to transform TSV line into `HList` */
   protected def decoder: RowDecoder[HTSV]
@@ -36,7 +35,7 @@ private[scalasdk] trait Parser[A] extends Serializable {
     val values = row.split("\t", -1)
     if (values.length == 1)
       Validated.Invalid(NotTSV)
-    else if (values.length != knownKeys.length)
+    else if (values.length != expectedNumFields)
       Validated.Invalid(FieldNumberMismatch(values.length))
     else {
       val decoded = decoder(values.toList).leftMap(e => RowDecodingError(e))
@@ -46,7 +45,16 @@ private[scalasdk] trait Parser[A] extends Serializable {
 }
 
 object Parser {
+
   private[scalasdk] sealed trait DeriveParser[A] {
+
+    def knownKeys[R <: HList, K <: HList, L <: HList](
+      implicit lgen: LabelledGeneric.Aux[A, R],
+      keys: Keys.Aux[R, K],
+      gen: Generic.Aux[A, L],
+      toTraversableAux: ToTraversable.Aux[K, List, Symbol]
+    ): List[String] =
+      keys().toList.map(_.name)
 
     /**
      * Get instance of parser after all evidences are given
@@ -62,11 +70,12 @@ object Parser {
       gen: Generic.Aux[A, L],
       toTraversableAux: ToTraversable.Aux[K, List, Symbol],
       deriveRowDecoder: RowDecoder.DeriveRowDecoder[L]
-    ): Parser[A] =
+    ): TSVParser[A] =
       new Parser[A] {
         type HTSV = L
-        val knownKeys: List[Symbol] = keys().toList
-        val decoder: RowDecoder[L] = deriveRowDecoder.get(knownKeys, maxLengths)
+        val keyList = keys().toList
+        val expectedNumFields: Int = keyList.length
+        val decoder: RowDecoder[L] = deriveRowDecoder.get(keyList, maxLengths)
         val generic: Generic.Aux[A, L] = gen
       }
   }

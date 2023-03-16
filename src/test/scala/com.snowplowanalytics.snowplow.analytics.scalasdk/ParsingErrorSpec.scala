@@ -16,6 +16,7 @@ import cats.data.NonEmptyList
 import io.circe.{Decoder, DecodingFailure, Json, parser}
 import io.circe.syntax._
 import io.circe.parser._
+import com.snowplowanalytics.snowplow.analytics.scalasdk.validate.FIELD_SIZES
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError._
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo._
 import org.specs2.Specification
@@ -31,7 +32,6 @@ class ParsingErrorSpec extends Specification {
     works correctly with NotTSV error $e1
     works correctly with FieldNumberMismatch error $e2
     works correctly with RowDecodingError $e3
-    works correctly with TSV oversized columns $e4
     works correctly with JSON oversized columns $e5
   """
 
@@ -101,17 +101,10 @@ class ParsingErrorSpec extends Specification {
   }
 
   def e4 = {
+    // no field length validation since version 3.1.0
     val badEvent = Event.minimal(UUID.randomUUID(), Instant.now(), "v" * 101, "v_etl").copy(geo_country = Some("sssss"))
-    val expected = Invalid(
-      RowDecodingError(
-        NonEmptyList.of(
-          InvalidValue(Symbol("v_collector"), "v" * 101, s"Field v_collector longer than maximum allowed size 100"),
-          InvalidValue(Symbol("geo_country"), "sssss", s"Field geo_country longer than maximum allowed size 2")
-        )
-      )
-    )
-    (Event.parse(badEvent.toTsv, validateFieldLengths = true) must beEqualTo(expected)) and
-      (Event.parse(badEvent.toTsv, validateFieldLengths = false) must haveClass[Valid[_]])
+    (Event.parser(FIELD_SIZES).parse(badEvent.toTsv) must haveClass[Valid[_]]) and
+      (Event.parser(Map.empty).parse(badEvent.toTsv) must haveClass[Valid[_]])
   }
 
   def e5 =
