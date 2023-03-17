@@ -1,16 +1,21 @@
+Version 3.1.0 (2023-03-17)
+--------------------------
+Disable validation of field lengths when parsing event (#127)
+Build with Scala-3 (#124)
+
 Version 3.0.1 (2022-05-10)
 --------------------------
-3.0.0 was not published to maven (close #121)
+3.0.0 was not published to maven (#121)
 
 Version 3.0.0 (2022-02-09)
 --------------------------
-Event parser should fail on oversized fields (close #115)
-Fix scoverage failures in github actions (close #119)
-Update github workflows fix snyk vulnerability scanning (close #120)
+Event parser should fail on oversized fields (#115)
+Fix scoverage failures in github actions (#119)
+Update github workflows fix snyk vulnerability scanning (#120)
 
 Version 2.1.0 (2020-11-09)
 --------------------------
-Update README to point to docs (close #110)
+Update README to point to docs (#110)
 Add scalafmt (#112)
 Migrate from Travis to GH actions (#113)
 Integrate Snyk (#111)
