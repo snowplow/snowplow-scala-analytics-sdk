@@ -16,6 +16,7 @@ import shapeless._
 import cats.syntax.validated._
 import cats.syntax.either._
 import cats.syntax.apply._
+import java.nio.ByteBuffer
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.RowDecodingErrorInfo.UnhandledRowDecodingError
 
 private[scalasdk] trait RowDecoderCompanion {
@@ -44,11 +45,34 @@ private[scalasdk] trait RowDecoderCompanion {
       case Nil => UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
     }
 
+  /** Parse TSV row into HList */
+  private def parseBytes[H: ValueDecoder, T <: HList](
+    key: Key,
+    tailDecoder: RowDecoder[T],
+    maxLength: Option[Int],
+    row: List[ByteBuffer]
+  ): RowDecodeResult[H :: T] =
+    row match {
+      case h :: t =>
+        val hv: RowDecodeResult[H] = ValueDecoder[H].parseBytes(key, h, maxLength).toValidatedNel
+        val tv: RowDecodeResult[T] = tailDecoder.decodeBytes(t)
+        (hv, tv).mapN(_ :: _)
+      case Nil => UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
+    }
+
   implicit def hnilFromRow: DeriveRowDecoder[HNil] =
     new DeriveRowDecoder[HNil] {
       def get(knownKeys: List[Key], maxLengths: Map[String, Int]): RowDecoder[HNil] =
         new RowDecoder[HNil] {
           def apply(row: List[String]): RowDecodeResult[HNil] =
+            row match {
+              case Nil =>
+                HNil.validNel
+              case _ =>
+                UnhandledRowDecodingError("Not enough values, format is invalid").invalidNel
+            }
+
+          def decodeBytes(row: List[ByteBuffer]): RowDecodeResult[HNil] =
             row match {
               case Nil =>
                 HNil.validNel
@@ -67,6 +91,7 @@ private[scalasdk] trait RowDecoderCompanion {
             val maxLength = maxLengths.get(key.name)
             new RowDecoder[H :: T] {
               def apply(row: List[String]): RowDecodeResult[H :: T] = parse(key, tailDecoder, maxLength, row)
+              def decodeBytes(row: List[ByteBuffer]): RowDecodeResult[H :: T] = parseBytes(key, tailDecoder, maxLength, row)
             }
           case Nil =>
             // Shapeless type checking makes this impossible

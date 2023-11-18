@@ -12,7 +12,10 @@
  */
 package com.snowplowanalytics.snowplow.analytics.scalasdk.decode
 
+import java.nio.ByteBuffer
+
 /** Parser for a TSV-encoded string */
 trait TSVParser[A] extends Serializable {
+  def parseBytes(bytes: ByteBuffer): DecodeResult[A]
   def parse(row: String): DecodeResult[A]
 }
