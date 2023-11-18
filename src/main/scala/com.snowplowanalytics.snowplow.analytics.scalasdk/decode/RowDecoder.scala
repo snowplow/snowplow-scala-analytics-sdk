@@ -13,11 +13,15 @@
 package com.snowplowanalytics.snowplow.analytics.scalasdk
 package decode
 
+import java.nio.ByteBuffer
+
 private[scalasdk] trait RowDecoder[L] extends Serializable { self =>
   def apply(row: List[String]): RowDecodeResult[L]
+  def decodeBytes(row: List[ByteBuffer]): RowDecodeResult[L]
   def map[B](f: L => B): RowDecoder[B] =
     new RowDecoder[B] {
       def apply(row: List[String]): RowDecodeResult[B] = self.apply(row).map(f)
+      def decodeBytes(row: List[ByteBuffer]): RowDecodeResult[B] = self.decodeBytes(row).map(f)
     }
 }
 

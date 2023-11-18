@@ -19,6 +19,8 @@ import com.snowplowanalytics.snowplow.analytics.scalasdk.validate.FIELD_SIZES
 import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.util.UUID
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 
 // cats
 import cats.syntax.either._
@@ -30,8 +32,8 @@ import com.snowplowanalytics.iglu.core.SelfDescribingData
 import com.snowplowanalytics.iglu.core.circe.implicits._
 
 // circe
-import io.circe.parser.{parse => parseJson}
-import io.circe.{Error, Json}
+import io.circe.jawn.JawnParser
+import io.circe.{Error, Json, ParsingFailure}
 
 // This library
 import com.snowplowanalytics.snowplow.analytics.scalasdk.Common.{ContextsCriterion, UnstructEventCriterion}
@@ -45,9 +47,19 @@ private[decode] trait ValueDecoder[A] {
     value: String,
     maxLength: Option[Int]
   ): DecodedValue[A]
+
+  def parseBytes(
+    key: Key,
+    value: ByteBuffer,
+    maxLength: Option[Int]
+  ): DecodedValue[A] =
+    parse(key, StandardCharsets.UTF_8.decode(value).toString, maxLength)
 }
 
 private[decode] object ValueDecoder {
+
+  private val parser: JawnParser = new JawnParser
+
   def apply[A](implicit readA: ValueDecoder[A]): ValueDecoder[A] = readA
 
   def fromFunc[A](f: ((Key, String, Option[Int])) => DecodedValue[A]): ValueDecoder[A] =
@@ -159,41 +171,85 @@ private[decode] object ValueDecoder {
         }
     }
 
-  implicit final val unstructuredJson: ValueDecoder[UnstructEvent] =
-    fromFunc[UnstructEvent] {
-      case (key, value, _) =>
-        def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, value, error.show)
+  implicit final val unstructuredJson: ValueDecoder[UnstructEvent] = {
+    def fromJsonParseResult(
+      result: Either[ParsingFailure, Json],
+      key: Key,
+      originalValue: => String
+    ): DecodedValue[UnstructEvent] = {
+      def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, originalValue, error.show)
+      result
+        .flatMap(_.as[SelfDescribingData[Json]])
+        .leftMap(asLeft) match {
+        case Right(SelfDescribingData(schema, data)) if UnstructEventCriterion.matches(schema) =>
+          data.as[SelfDescribingData[Json]].leftMap(asLeft).map(_.some).map(UnstructEvent.apply)
+        case Right(SelfDescribingData(schema, _)) =>
+          InvalidValue(key, originalValue, s"Unknown payload: ${schema.toSchemaUri}").asLeft[UnstructEvent]
+        case Left(error) => error.asLeft[UnstructEvent]
+      }
+    }
+    new ValueDecoder[UnstructEvent] {
+      def parse(
+        key: Key,
+        value: String,
+        maxLength: Option[Int]
+      ): DecodedValue[UnstructEvent] =
         if (value.isEmpty)
           UnstructEvent(None).asRight[RowDecodingErrorInfo]
         else
-          parseJson(value)
-            .flatMap(_.as[SelfDescribingData[Json]])
-            .leftMap(asLeft) match {
-            case Right(SelfDescribingData(schema, data)) if UnstructEventCriterion.matches(schema) =>
-              data.as[SelfDescribingData[Json]].leftMap(asLeft).map(_.some).map(UnstructEvent.apply)
-            case Right(SelfDescribingData(schema, _)) =>
-              InvalidValue(key, value, s"Unknown payload: ${schema.toSchemaUri}").asLeft[UnstructEvent]
-            case Left(error) => error.asLeft[UnstructEvent]
-          }
-    }
+          fromJsonParseResult(parser.parse(value), key, value)
 
-  implicit final val contexts: ValueDecoder[Contexts] =
-    fromFunc[Contexts] {
-      case (key, value, _) =>
-        def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, value, error.show)
-        if (value.isEmpty)
-          Contexts(List()).asRight[RowDecodingErrorInfo]
+      override def parseBytes(
+        key: Key,
+        value: ByteBuffer,
+        maxLength: Option[Int]
+      ): DecodedValue[UnstructEvent] =
+        if (!value.hasRemaining())
+          UnstructEvent(None).asRight[RowDecodingErrorInfo]
         else
-          parseJson(value)
-            .flatMap(_.as[SelfDescribingData[Json]])
-            .leftMap(asLeft) match {
-            case Right(SelfDescribingData(schema, data)) if ContextsCriterion.matches(schema) =>
-              data.as[List[SelfDescribingData[Json]]].leftMap(asLeft).map(Contexts.apply)
-            case Right(SelfDescribingData(schema, _)) =>
-              InvalidValue(key, value, s"Unknown payload: ${schema.toSchemaUri}").asLeft[Contexts]
-            case Left(error) => error.asLeft[Contexts]
-          }
+          fromJsonParseResult(parser.parseByteBuffer(value), key, StandardCharsets.UTF_8.decode(value).toString)
     }
+  }
+
+  implicit final val contexts: ValueDecoder[Contexts] = {
+    def fromJsonParseResult(
+      result: Either[ParsingFailure, Json],
+      key: Key,
+      originalValue: => String
+    ): DecodedValue[Contexts] = {
+      def asLeft(error: Error): RowDecodingErrorInfo = InvalidValue(key, originalValue, error.show)
+      result
+        .flatMap(_.as[SelfDescribingData[Json]])
+        .leftMap(asLeft) match {
+        case Right(SelfDescribingData(schema, data)) if ContextsCriterion.matches(schema) =>
+          data.as[List[SelfDescribingData[Json]]].leftMap(asLeft).map(Contexts.apply)
+        case Right(SelfDescribingData(schema, _)) =>
+          InvalidValue(key, originalValue, s"Unknown payload: ${schema.toSchemaUri}").asLeft[Contexts]
+        case Left(error) => error.asLeft[Contexts]
+      }
+    }
+    new ValueDecoder[Contexts] {
+      def parse(
+        key: Key,
+        value: String,
+        maxLength: Option[Int]
+      ): DecodedValue[Contexts] =
+        if (value.isEmpty)
+          Contexts(List.empty).asRight[RowDecodingErrorInfo]
+        else
+          fromJsonParseResult(parser.parse(value), key, value)
+
+      override def parseBytes(
+        key: Key,
+        value: ByteBuffer,
+        maxLength: Option[Int]
+      ): DecodedValue[Contexts] =
+        if (!value.hasRemaining())
+          Contexts(List.empty).asRight[RowDecodingErrorInfo]
+        else
+          fromJsonParseResult(parser.parseByteBuffer(value), key, StandardCharsets.UTF_8.decode(value).toString)
+    }
+  }
 
   /**
    * Converts a timestamp to an ISO-8601 format usable by Instant.parse()

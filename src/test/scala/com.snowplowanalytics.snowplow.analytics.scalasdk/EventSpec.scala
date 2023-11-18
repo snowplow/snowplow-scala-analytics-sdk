@@ -16,6 +16,8 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 // java
 import java.time.Instant
 import java.util.UUID
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 
 // cats
 import cats.data.Validated.{Invalid, Valid}
@@ -157,15 +159,22 @@ class EventSpec extends Specification with ScalaCheck {
       )
 
       val eventValues = input.unzip._2.mkString("\t")
+      val eventValuesBytes = ByteBuffer.wrap(eventValues.getBytes(StandardCharsets.UTF_8))
 
       val event1 = Event.parse(eventValues)
       val event2 = Event.parser().parse(eventValues)
       val event3 = Event.parser(FIELD_SIZES).parse(eventValues)
+      val event4 = Event.parseBytes(eventValuesBytes)
+      val event5 = Event.parser().parseBytes(eventValuesBytes)
+      val event6 = Event.parser(FIELD_SIZES).parseBytes(eventValuesBytes)
 
       // Case class must be processed as expected, for all varieties of the parser
       event1 mustEqual Valid(expected)
       event2 mustEqual Valid(expected)
       event3 mustEqual Valid(expected)
+      event4 mustEqual Valid(expected)
+      event5 mustEqual Valid(expected)
+      event6 mustEqual Valid(expected)
 
       val eventJson = event1.getOrElse(throw new RuntimeException("Failed to parse event")).toJson(true)
 
@@ -363,10 +372,13 @@ class EventSpec extends Specification with ScalaCheck {
       val expected = baseExpected
 
       val eventValues = input.unzip._2.mkString("\t")
+      val eventValuesBytes = ByteBuffer.wrap(eventValues.getBytes(StandardCharsets.UTF_8))
       val event = Event.parse(eventValues)
+      val event2 = Event.parseBytes(eventValuesBytes)
 
       // Case class must be processed as expected
       event mustEqual Valid(expected)
+      event2 mustEqual Valid(expected)
 
       val eventJson = event.getOrElse(throw new RuntimeException("Failed to parse event")).toJson(true)
 
@@ -604,10 +616,13 @@ class EventSpec extends Specification with ScalaCheck {
       )
 
       val eventValues = input.unzip._2.mkString("\t")
+      val eventValuesBytes = ByteBuffer.wrap(eventValues.getBytes(StandardCharsets.UTF_8))
       val event = Event.parse(eventValues)
+      val event2 = Event.parseBytes(eventValuesBytes)
 
       // Case class must be processed as expected
       event mustEqual Valid(expected)
+      event2 mustEqual Valid(expected)
 
       val eventJson = event.getOrElse(throw new RuntimeException("Failed to parse event")).toJson(true)
 
@@ -866,7 +881,9 @@ class EventSpec extends Specification with ScalaCheck {
       }
 
       val eventValues = input.unzip._2.mkString("\t")
+      val eventValuesBytes = ByteBuffer.wrap(eventValues.getBytes(StandardCharsets.UTF_8))
       val event = Event.parse(eventValues)
+      val event2 = Event.parseBytes(eventValuesBytes)
 
       // Case class must be correctly invalidated
       val res = RowDecodingError(
@@ -881,19 +898,27 @@ class EventSpec extends Specification with ScalaCheck {
         )
       )
       event mustEqual Invalid(res)
+      event2 mustEqual Invalid(res)
     }
 
     "fail if payload is not TSV" in {
-      val event = Event.parse("non tsv")
+      val str = "non tsv"
+      val bytes = ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8))
+      val event = Event.parse(str)
+      val event2 = Event.parseBytes(bytes)
       event mustEqual Invalid(NotTSV)
+      event2 mustEqual Invalid(NotTSV)
     }
 
     "fail if there are more fields than expected" in {
       val input = baseInput :+ "additional_field" -> "mock_value"
       val eventValues = input.unzip._2.mkString("\t")
+      val eventValuesBytes = ByteBuffer.wrap(eventValues.getBytes(StandardCharsets.UTF_8))
       val event = Event.parse(eventValues)
+      val event2 = Event.parseBytes(eventValuesBytes)
 
       event mustEqual Invalid(FieldNumberMismatch(132))
+      event2 mustEqual Invalid(FieldNumberMismatch(132))
     }
 
     "fail if there are fewer fields than expected" in {
@@ -905,9 +930,12 @@ class EventSpec extends Specification with ScalaCheck {
       )
 
       val eventValues = input.unzip._2.mkString("\t")
+      val eventValuesBytes = ByteBuffer.wrap(eventValues.getBytes(StandardCharsets.UTF_8))
       val event = Event.parse(eventValues)
+      val event2 = Event.parseBytes(eventValuesBytes)
 
       event mustEqual Invalid(FieldNumberMismatch(4))
+      event2 mustEqual Invalid(FieldNumberMismatch(4))
     }
 
     "successfully decode encoded event which has no contexts or unstruct_event" in {

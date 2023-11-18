@@ -16,6 +16,7 @@ package com.snowplowanalytics.snowplow.analytics.scalasdk
 import java.time.Instant
 import java.util.UUID
 import java.time.format.DateTimeFormatter
+import java.nio.ByteBuffer
 
 // circe
 import io.circe.{Decoder, Encoder, Json, JsonObject}
@@ -279,6 +280,9 @@ object Event {
    */
   def parse(line: String): DecodeResult[Event] =
     stdParser.parse(line)
+
+  def parseBytes(bytes: ByteBuffer): DecodeResult[Event] =
+    stdParser.parseBytes(bytes)
 
   private lazy val fieldNames: List[String] =
     Parser.deriveFor[Event].knownKeys

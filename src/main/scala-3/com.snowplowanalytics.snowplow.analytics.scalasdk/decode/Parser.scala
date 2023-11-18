@@ -12,7 +12,10 @@
  */
 package com.snowplowanalytics.snowplow.analytics.scalasdk.decode
 
+import cats.implicits._
 import cats.data.{NonEmptyList, Validated}
+import java.nio.ByteBuffer
+import scala.collection.mutable.ListBuffer
 import com.snowplowanalytics.snowplow.analytics.scalasdk.ParsingError.{FieldNumberMismatch, NotTSV, RowDecodingError}
 import scala.deriving._
 import scala.compiletime._
@@ -30,9 +33,31 @@ private[scalasdk] trait Parser[A] extends TSVParser[A] {
     else if (values.length != expectedNumFields) Validated.Invalid(FieldNumberMismatch(values.length))
     else decoder(values.toList).leftMap(e => RowDecodingError(e))
   }
+
+  def parseBytes(row: ByteBuffer): DecodeResult[A] = {
+    val values = Parser.splitBuffer(row)
+    if (values.length == 1) Validated.Invalid(NotTSV)
+    else if (values.length != expectedNumFields) Validated.Invalid(FieldNumberMismatch(values.length))
+    else decoder.decodeBytes(values.result()).leftMap(e => RowDecodingError(e))
+  }
 }
 
 object Parser {
+
+  private val tab: Byte = '\t'.toByte
+
+  private def splitBuffer(row: ByteBuffer): ListBuffer[ByteBuffer] = {
+    var current = row.duplicate
+    val builder = ListBuffer(current)
+    (row.position() until row.limit()).foreach { i =>
+      if (row.get(i) === tab) {
+        current.limit(i)
+        current = row.duplicate.position(i + 1)
+        builder += current
+      }
+    }
+    builder
+  }
 
   private[scalasdk] sealed trait DeriveParser[A] {
     inline def knownKeys(implicit mirror: Mirror.ProductOf[A]): List[String] =
