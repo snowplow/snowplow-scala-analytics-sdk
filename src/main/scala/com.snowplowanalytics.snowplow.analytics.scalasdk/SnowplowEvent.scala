@@ -61,13 +61,16 @@ object SnowplowEvent {
   case class Contexts(data: List[SelfDescribingData[Json]]) extends AnyVal {
     def toShreddedJson: Map[String, Json] =
       data.groupBy(x => (x.schema.vendor, x.schema.name, x.schema.format, x.schema.version.model)).map {
-        case ((vendor, name, _, model), d) =>
-          (transformSchema(Data.Contexts(Data.CustomContexts), vendor, name, model),
-           d.map { selfdesc =>
-             selfdesc.data
-           }.asJson
-          )
+        case ((vendor, name, _, model), contextsSdd) =>
+          val transformedName = transformSchema(Data.Contexts(Data.CustomContexts), vendor, name, model)
+          val transformedData = contextsSdd.map(addSchemaVersionToData).asJson
+          (transformedName, transformedData)
       }
+  }
+
+  private def addSchemaVersionToData(contextSdd: SelfDescribingData[Json]): Json = {
+    val version = Json.obj("_schema_version" -> contextSdd.schema.toSchemaUri.asJson)
+    contextSdd.data.deepMerge(version)
   }
 
   implicit final val contextsCirceEncoder: Encoder[Contexts] =
