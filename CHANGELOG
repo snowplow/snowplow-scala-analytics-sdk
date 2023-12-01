@@ -1,3 +1,8 @@
+Version 3.2.0 (2023-12-01)
+--------------------------
+Parse Event from a ByteBuffer (#130)
+Add _schema_version field to each context during toShreddedJson transformation (#132)
+
 Version 3.1.0 (2023-03-17)
 --------------------------
 Disable validation of field lengths when parsing event (#127)
