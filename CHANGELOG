@@ -1,3 +1,7 @@
+Version 3.2.1 (2024-01-10)
+--------------------------
+Use only version for `_schema_version` context field (#134)
+
 Version 3.2.0 (2023-12-01)
 --------------------------
 Parse Event from a ByteBuffer (#130)
