@@ -233,7 +233,7 @@ class EventSpec extends Specification with ScalaCheck {
         "mkt_content" : null,
         "mkt_campaign" : null,
         "contexts_org_schema_web_page_1" : [ {
-          "_schema_version" : "iglu:org.schema/WebPage/jsonschema/1-0-0",
+          "_schema_version" : "1-0-0",
           "genre" : "blog",
           "inLanguage" : "en-US",
           "datePublished" : "2014-11-06T00:00:00Z",
@@ -242,7 +242,7 @@ class EventSpec extends Specification with ScalaCheck {
           "keywords" : [ "snowplow", "javascript", "tracker", "event" ]
         } ],
         "contexts_org_w3_performance_timing_1" : [ {
-          "_schema_version" : "iglu:org.w3/PerformanceTiming/jsonschema/1-0-0",
+          "_schema_version" : "1-0-0",
           "navigationStart" : 1415358089861,
           "unloadEventStart" : 1415358090270,
           "unloadEventEnd" : 1415358090287,
@@ -338,7 +338,7 @@ class EventSpec extends Specification with ScalaCheck {
         "refr_domain_userid" : null,
         "refr_dvce_tstamp" : null,
         "contexts_com_snowplowanalytics_snowplow_ua_parser_context_1": [{
-          "_schema_version" : "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0",
+          "_schema_version" : "1-0-0",
           "useragentFamily": "IE",
           "useragentMajor": "7",
           "useragentMinor": "0",
@@ -681,7 +681,7 @@ class EventSpec extends Specification with ScalaCheck {
         "mkt_content" : null,
         "mkt_campaign" : null,
         "contexts_org_schema_web_page_1" : [ {
-          "_schema_version" : "iglu:org.schema/WebPage/jsonschema/1-0-0",
+          "_schema_version" : "1-0-0",
           "genre" : "blog",
           "inLanguage" : "en-US",
           "datePublished" : "2014-11-06T00:00:00Z",
@@ -691,11 +691,11 @@ class EventSpec extends Specification with ScalaCheck {
         } ],
         "contexts_org_acme_context_one_1" : [
           {
-            "_schema_version" : "iglu:org.acme/context_one/jsonschema/1-0-0",
+            "_schema_version" : "1-0-0",
             "item" : 1
           },
           {
-            "_schema_version" : "iglu:org.acme/context_one/jsonschema/1-0-1",
+            "_schema_version" : "1-0-1",
             "item" : 2
           }
         ],
@@ -773,7 +773,7 @@ class EventSpec extends Specification with ScalaCheck {
         "refr_domain_userid" : null,
         "refr_dvce_tstamp" : null,
         "contexts_com_snowplowanalytics_snowplow_ua_parser_context_1": [{
-          "_schema_version" : "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0",
+          "_schema_version" : "1-0-0",
           "useragentFamily": "IE",
           "useragentMajor": "7",
           "useragentMinor": "0",
@@ -816,7 +816,7 @@ class EventSpec extends Specification with ScalaCheck {
         "contexts_org_schema_web_page_1" ->
           List(
             JsonObject(
-              ("_schema_version", "iglu:org.schema/WebPage/jsonschema/1-0-0".asJson),
+              ("_schema_version", "1-0-0".asJson),
               ("genre", "blog".asJson),
               ("inLanguage", "en-US".asJson),
               ("datePublished", "2014-11-06T00:00:00Z".asJson),
@@ -828,11 +828,11 @@ class EventSpec extends Specification with ScalaCheck {
         "contexts_org_acme_context_one_1" ->
           List(
             JsonObject(
-              ("_schema_version", "iglu:org.acme/context_one/jsonschema/1-0-0".asJson),
+              ("_schema_version", "1-0-0".asJson),
               ("item", 1.asJson)
             ).asJson,
             JsonObject(
-              ("_schema_version", "iglu:org.acme/context_one/jsonschema/1-0-1".asJson),
+              ("_schema_version", "1-0-1".asJson),
               ("item", 2.asJson)
             ).asJson
           ).asJson
@@ -841,7 +841,7 @@ class EventSpec extends Specification with ScalaCheck {
         "contexts_com_snowplowanalytics_snowplow_ua_parser_context_1" ->
           List(
             JsonObject(
-              ("_schema_version", "iglu:com.snowplowanalytics.snowplow/ua_parser_context/jsonschema/1-0-0".asJson),
+              ("_schema_version", "1-0-0".asJson),
               ("useragentFamily", "IE".asJson),
               ("useragentMajor", "7".asJson),
               ("useragentMinor", "0".asJson),
