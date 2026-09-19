@@ -1,3 +1,15 @@
+Version 3.2.3 (2026-09-02)
+--------------------------
+Increase stack size for Scala 3 compilation (#11)
+Bump dependencies for 3.2.3 release (#8)
+Avoid compiling a regex Pattern on every call (#9)
+Avoid boxing an Integer per byte in Parser.splitBuffer (#5)
+Migrate publishing to Sonatype Central Portal (#7)
+Avoid allocating a CharBuffer and a Tuple3 per field when parsing (#6)
+chore(ci): remove Snyk workflow
+ci: exclude .github, .claude and CLAUDE.md from publish (#3)
+Fix GitHub Actions workflows (#2)
+
 Version 3.2.2 (2024-11-06)
 --------------------------
 Fix for `_schema_version` overriding non-object entity data (#137)

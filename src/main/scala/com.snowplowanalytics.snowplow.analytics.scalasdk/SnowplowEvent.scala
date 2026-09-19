@@ -26,6 +26,10 @@ import com.snowplowanalytics.iglu.core.{SchemaKey, SelfDescribingData}
 
 object SnowplowEvent {
 
+  // Compiled once, instead of on every call to `transformSchema`
+  private val dotsAndDashes = """[\.\-]""".r
+  private val pascalCaseBoundary = "([^A-Z_])([A-Z])".r
+
   /**
    * A JSON representation of an atomic event's unstruct_event field.
    *
@@ -102,10 +106,11 @@ object SnowplowEvent {
     model: Int
   ): String = {
     // Convert dots & dashes in schema vendor to underscore
-    val snakeCaseVendor = vendor.replaceAll("""[\.\-]""", "_").toLowerCase
+    val snakeCaseVendor = dotsAndDashes.replaceAllIn(vendor, "_").toLowerCase
 
     // Convert PascalCase in schema name to snake_case
-    val snakeCaseName = name.replaceAll("""[\.\-]""", "_").replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase
+    val underscoredName = dotsAndDashes.replaceAllIn(name, "_")
+    val snakeCaseName = pascalCaseBoundary.replaceAllIn(underscoredName, "$1_$2").toLowerCase
 
     s"${shredProperty.prefix}${snakeCaseVendor}_${snakeCaseName}_$model"
   }

@@ -14,6 +14,8 @@
 package com.snowplowanalytics.snowplow.analytics.scalasdk.decode
 
 // java
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
@@ -239,6 +241,67 @@ class ValueDecoderSpec extends Specification {
         invalidPayloadUnstruct,
         "Unknown payload: iglu:invalid/schema/jsonschema/1-0-0"
       ).asLeft
+    }
+
+    "parse byte buffer values identically whether or not a backing array is reachable" in {
+      def decode(bytes: Array[Byte]): List[DecodedValue[Option[String]]] = {
+        val writable = ByteBuffer.wrap(bytes)
+        val direct = ByteBuffer.allocateDirect(bytes.length).put(bytes)
+        direct.rewind()
+        List(writable, writable.asReadOnlyBuffer, direct)
+          .map(buffer => ValueDecoder[Option[String]].parseBytes(Symbol("key"), buffer, None))
+      }
+      def utf8(text: String): List[DecodedValue[Option[String]]] = decode(text.getBytes(StandardCharsets.UTF_8))
+
+      val replacement = 0xfffd.toChar.toString
+
+      utf8("value") mustEqual List.fill(3)(Some("value").asRight)
+      utf8("") mustEqual List.fill(3)(None.asRight)
+      utf8("héllo → ☃") mustEqual List.fill(3)(Some("héllo → ☃").asRight)
+
+      // Malformed input is replaced rather than rejected, as CharsetDecoder does
+      decode(Array[Byte](0x61, 0xc3.toByte)) mustEqual List.fill(3)(Some("a" + replacement).asRight)
+      decode(Array[Byte](0x61, 0xc3.toByte, 0x28, 0x62)) mustEqual List.fill(3)(Some("a" + replacement + "(b").asRight)
+      decode(Array[Byte](0x80.toByte)) mustEqual List.fill(3)(Some(replacement).asRight)
+      decode(Array[Byte](0xc0.toByte, 0xaf.toByte)) mustEqual List.fill(3)(Some(replacement * 2).asRight)
+    }
+
+    "parse a byte buffer value without disturbing the buffer" in {
+      val row = ByteBuffer.wrap("prefix\tvalue\tsuffix".getBytes(StandardCharsets.UTF_8)).asReadOnlyBuffer
+      val field = row.duplicate
+      field.position(7)
+      field.limit(12)
+
+      ValueDecoder[Option[String]].parseBytes(Symbol("key"), field, None) mustEqual Some("value").asRight
+      field.position() mustEqual 7
+      field.limit() mustEqual 12
+    }
+
+    "report the offending payload for JSON columns, whether parsed from a String or a byte buffer" in {
+      val unknownSchemaContexts =
+        """{"schema":"iglu:invalid/schema/jsonschema/1-0-0","data":[{"schema":"iglu:org.schema/WebPage/jsonschema/1-0-0","data":{}}]}"""
+      val unknownSchemaUnstruct =
+        """{"schema":"iglu:invalid/schema/jsonschema/1-0-0","data":{"schema":"iglu:org.schema/WebPage/jsonschema/1-0-0","data":{}}}"""
+      val truncated = """{"schema": """
+
+      def buffer(json: String) = ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)).asReadOnlyBuffer
+
+      // The value that failed must survive into the bad row on both paths, not just the String one
+      foreach(List(unknownSchemaContexts, truncated)) { json =>
+        val field = buffer(json)
+        ValueDecoder[Contexts].parseBytes(Symbol("key"), field, None) mustEqual
+          ValueDecoder[Contexts].parse(Symbol("key"), json, None)
+        field.position() mustEqual 0
+        field.limit() mustEqual json.length
+      }
+
+      foreach(List(unknownSchemaUnstruct, truncated)) { json =>
+        val field = buffer(json)
+        ValueDecoder[UnstructEvent].parseBytes(Symbol("key"), field, None) mustEqual
+          ValueDecoder[UnstructEvent].parse(Symbol("key"), json, None)
+        field.position() mustEqual 0
+        field.limit() mustEqual json.length
+      }
     }
   }
 }

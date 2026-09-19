@@ -18,8 +18,8 @@ lazy val root = project
       name := "snowplow-scala-analytics-sdk",
       organization := "com.snowplowanalytics",
       description := "Scala analytics SDK for Snowplow",
-      scalaVersion := "2.13.10",
-      crossScalaVersions := Seq("2.12.17", "2.13.10", "3.2.1")
+      scalaVersion := "2.13.18",
+      crossScalaVersions := Seq("2.12.21", "2.13.18", "3.3.7")
     )
   )
   .enablePlugins(SiteScaladocPlugin)
@@ -53,5 +53,6 @@ lazy val root = project
 
 lazy val benchmark = project
   .in(file("benchmark"))
+  .settings(scalaVersion := "2.13.18")
   .dependsOn(root % "test->test")
   .enablePlugins(JmhPlugin)

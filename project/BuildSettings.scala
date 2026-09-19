@@ -23,6 +23,9 @@ import com.typesafe.tools.mima.core.{ProblemFilters, DirectMissingMethodProblem}
 // Scoverage plugin
 import scoverage.ScoverageKeys._
 
+// Sonatype plugin
+import xerial.sbt.Sonatype.autoImport._
+
 
 import sbtdynver.DynVerPlugin.autoImport._
 
@@ -63,6 +66,7 @@ object BuildSettings {
   lazy val publishSettings = Seq[Setting[_]](
     publishArtifact := true,
     Test / publishArtifact := false,
+    sonatypeCredentialHost := "central.sonatype.com",
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
     pomIncludeRepository := { _ => false },
     homepage := Some(url("http://snowplowanalytics.com")),

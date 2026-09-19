@@ -167,6 +167,7 @@ class EventSpec extends Specification with ScalaCheck {
       val event4 = Event.parseBytes(eventValuesBytes)
       val event5 = Event.parser().parseBytes(eventValuesBytes)
       val event6 = Event.parser(FIELD_SIZES).parseBytes(eventValuesBytes)
+      val event7 = Event.parseBytes(eventValuesBytes.asReadOnlyBuffer)
 
       // Case class must be processed as expected, for all varieties of the parser
       event1 mustEqual Valid(expected)
@@ -175,6 +176,7 @@ class EventSpec extends Specification with ScalaCheck {
       event4 mustEqual Valid(expected)
       event5 mustEqual Valid(expected)
       event6 mustEqual Valid(expected)
+      event7 mustEqual Valid(expected)
 
       val eventJson = event1.getOrElse(throw new RuntimeException("Failed to parse event")).toJson(true)
 

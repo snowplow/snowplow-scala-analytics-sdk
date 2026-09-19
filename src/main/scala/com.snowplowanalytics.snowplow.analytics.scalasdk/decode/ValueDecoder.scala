@@ -53,22 +53,46 @@ private[decode] trait ValueDecoder[A] {
     value: ByteBuffer,
     maxLength: Option[Int]
   ): DecodedValue[A] =
-    parse(key, StandardCharsets.UTF_8.decode(value).toString, maxLength)
+    parse(key, ValueDecoder.decodeUtf8(value), maxLength)
 }
 
 private[decode] object ValueDecoder {
 
   private val parser: JawnParser = new JawnParser
 
+  /**
+   * Decodes a UTF-8 field, leaving the buffer's position and limit unchanged.
+   *
+   * `Charset.decode` is avoided here because it materialises the field twice: once into a
+   * `CharBuffer` it allocates, and again into the `String`. It also cannot reach the backing array
+   * of a read-only buffer -- which is what a caller wrapping bytes from a cloud SDK supplies -- and
+   * so decodes those a byte at a time. `String`'s UTF-8 constructor is intrinsified and takes a
+   * fast path for ASCII input, but it needs the bytes in an array.
+   */
+  private def decodeUtf8(value: ByteBuffer): String = {
+    val length = value.remaining
+    if (length == 0)
+      ""
+    else if (value.hasArray)
+      new String(value.array, value.arrayOffset + value.position(), length, StandardCharsets.UTF_8)
+    else {
+      val bytes = new Array[Byte](length)
+      val position = value.position()
+      value.get(bytes)
+      value.position(position)
+      new String(bytes, StandardCharsets.UTF_8)
+    }
+  }
+
   def apply[A](implicit readA: ValueDecoder[A]): ValueDecoder[A] = readA
 
-  def fromFunc[A](f: ((Key, String, Option[Int])) => DecodedValue[A]): ValueDecoder[A] =
+  def fromFunc[A](f: (Key, String, Option[Int]) => DecodedValue[A]): ValueDecoder[A] =
     new ValueDecoder[A] {
       def parse(
         key: Key,
         value: String,
         maxLength: Option[Int]
-      ): DecodedValue[A] = f((key, value, maxLength))
+      ): DecodedValue[A] = f(key, value, maxLength)
     }
 
   implicit final val stringColumnDecoder: ValueDecoder[String] =
@@ -207,7 +231,8 @@ private[decode] object ValueDecoder {
         if (!value.hasRemaining())
           UnstructEvent(None).asRight[RowDecodingErrorInfo]
         else
-          fromJsonParseResult(parser.parseByteBuffer(value), key, StandardCharsets.UTF_8.decode(value).toString)
+          // jawn drains the buffer it is given, so it gets the duplicate and `value` stays readable for the error message
+          fromJsonParseResult(parser.parseByteBuffer(value.duplicate), key, decodeUtf8(value))
     }
   }
 
@@ -247,7 +272,8 @@ private[decode] object ValueDecoder {
         if (!value.hasRemaining())
           Contexts(List.empty).asRight[RowDecodingErrorInfo]
         else
-          fromJsonParseResult(parser.parseByteBuffer(value), key, StandardCharsets.UTF_8.decode(value).toString)
+          // jawn drains the buffer it is given, so it gets the duplicate and `value` stays readable for the error message
+          fromJsonParseResult(parser.parseByteBuffer(value.duplicate), key, decodeUtf8(value))
     }
   }
 
@@ -257,5 +283,5 @@ private[decode] object ValueDecoder {
    * @param tstamp Timestamp of the form YYYY-MM-DD hh:mm:ss
    * @return ISO-8601 timestamp
    */
-  private def reformatTstamp(tstamp: String): String = tstamp.replaceAll(" ", "T") + "Z"
+  private def reformatTstamp(tstamp: String): String = tstamp.replace(' ', 'T') + "Z"
 }
